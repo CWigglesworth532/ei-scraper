@@ -1,0 +1,412 @@
+sources:
+  # ======================
+  # CORE (already working)
+  # ======================
+
+  - ccaa: "Andalucía"
+    name: "Registro de Empresas de Inserción de Andalucía"
+    url: "https://www.juntadeandalucia.es/sites/default/files/inline-files/2025/04/20250501_EMPRESAS_DE_INSERCION_REGISTRO.pdf"
+    type: "PDF"
+
+  - ccaa: "Comunidad de Madrid"
+    name: "Empresas de inserción (listado)"
+    url: "https://www.comunidad.madrid/sites/default/files/empresas_insercion_nov2021.xlsx"
+    type: "XLSX"
+
+  - ccaa: "País Vasco"
+    name: "Registro público Empresas de Inserción (Lanbide)"
+    url: "https://www.lanbide.euskadi.eus/contenidos/registro/emp_insercion/es_def/adjuntos/REGISTRO-publico-Empresas-de-Insercion_1307.pdf"
+    type: "PDF"
+
+  # ======================
+  # REST OF SPAIN (HIGH ROI)
+  # ======================
+
+  - ccaa: "Catalunya"
+    name: "Registro de las Empresas de Inserción en Catalunya"
+    url: "https://analisi.transparenciacatalunya.cat/api/views/d9jt-yqkn/rows.csv?accessType=DOWNLOAD"
+    type: "CSV"
+
+  - ccaa: "Castilla y León"
+    name: "Registro de Empresas de Inserción Laboral (JCyL)"
+    url: "https://datosabiertos.jcyl.es/web/jcyl/risp/es/economia/empresas-insercion-laboral/1284839961366.csv"
+    type: "CSV"
+
+  - ccaa: "Galicia"
+    name: "Listaxe de empresas de inserción laboral de Galicia"
+    url: "https://conselleriaemprego.xunta.gal/economia-social/empresas-insercion-laboral/listaxe"
+    type: "HTML"
+
+  - ccaa: "Principado de Asturias"
+    name: "Relación de empresas de inserción (Trabajastur)"
+    url: "https://trabajastur.asturias.es/empresas-de-inserci%C3%B3n1"
+    type: "HTML"
+
+  - ccaa: "Comunitat Valenciana"
+    name: "Empresas de Inserción (Labora)"
+    url: "https://labora.gva.es/es/entitats/entitats-col-laboradores/empreses-d-insercio"
+    type: "HTML"
+
+  - ccaa: "Aragón"
+    name: "Directorio de empresas de inserción (INAEM)"
+    url: "https://inaem.aragon.es/empresas-de-insercion-arinser"
+    type: "HTML"
+
+  - country: ES
+    ccaa: Canarias
+    name: Directorio de Empresas de Inserción Laboral en Canarias (SCE)
+    type: PDF
+    url: https://www.gobiernodecanarias.org/empleo/sce/ftp/principal/documentos/sce_economia_social/documentacion/DIRECTORIO_E_I.pdf
+
+  - country: ES
+    ccaa: Cantabria
+    name: Registro de Empresas de Inserción de Cantabria (listado)
+    type: PDF
+    url: https://dgte.cantabria.es/documents/16449/87933676/E.%2BINSERCION%2BSOCIAL%2B080725.pdf/c2e6a056-5229-cbc9-e516-d3a7ed0a02cf?t=1751970733948
+
+  - country: ES
+    ccaa: La Rioja
+    name: Registro de empresas de inserción sociolaboral (listado)
+    type: XLSX
+    url: https://www.larioja.org/larioja-client/cm/relaciones-laborales/images?idMmedia=1668704
+
+  - country: ES
+    ccaa: Navarra
+    name: Directorio (Reserva de Contratos) - Empresas de inserción
+    type: HTML
+    url: https://reservadecontratos.navarra.es/es/directorio-empresas
+
+  - country: ES
+    ccaa: Castilla-La Mancha
+    name: Registro administrativo de empresas de inserción en Castilla-La Mancha
+    type: XLSX
+    url: https://datosabiertos.castillalamancha.es/dataset/registro-administrativo-de-empresas-de-inserción-en-castilla-la-mancha
+
+  - country: ES
+    ccaa: Catalunya
+    name: Registre de Centres Especials de Treball (Generalitat de Catalunya)
+    type: CSV
+    url: https://analisi.transparenciacatalunya.cat/api/views/pr46-nkms/rows.csv?accessType=DOWNLOAD
+    mapping:
+      entity_name: ["Denominació del CET"]
+      tax_id: ["NIF"]
+      registry_id: ["Número registre"]
+      registry_date: ["Data alta al registre"]
+      activity: ["Productes i serveis"]
+
+  - country: ES
+    ccaa: Castilla y León
+    name: Registro de Centros Especiales de Empleo (Junta de Castilla y León)
+    type: CSV
+    url: https://datosabiertos.jcyl.es/web/jcyl/risp/es/economia/centros-especiales/1284838746851.csv
+    mapping:
+      entity_name: ["NOMBRE"]
+      tax_id: ["NIF"]
+      address: ["DOMICILIO"]
+      postcode: ["COD_POSTAL"]
+      municipality: ["MUNICIPIO"]
+      province: ["PROVINCIA"]
+      phone: ["TELEFONO"]
+      activity: ["ACTIVIDAD"]
+
+  - country: IT
+    ccaa: Milano (Comune)
+    name: Albo Cooperative Sociali (Comune di Milano)
+    type: CSV
+    url: https://www.dati.lombardia.it/api/views/i57x-7k2n/rows.csv?accessType=DOWNLOAD
+    mapping:
+      entity_name: ["DENOMINAZIONE"]
+      city: ["COMUNE"]
+      province: ["PROVINCIA"]
+      email: ["EMAIL"]
+      legal_form_local: ["AREA"]
+
+  - country: IT
+    region: Emilia-Romagna
+    name: Albo regionale cooperative sociali (TeSeO - Emilia-Romagna)
+    type: HTML
+    url: https://wwwservizi.regione.emilia-romagna.it/teseofe/cooperative-sociali.asp
+    mapping:
+      entity_name: ["denominazione"]
+      tax_id: ["codice_fiscale"]
+      municipality: ["comune"]
+      province: ["provincia"]
+      address: ["indirizzo"]
+      section: ["sezione"]
+
+  - country: IT
+    region: Piemonte
+    name: Albo regionale cooperative sociali (Piemonte - consultazione)
+    type: HTML
+    url: https://www.regione.piemonte.it/cgi-bin/polsoc/ricerca/cooperazione/index.cgi
+    mapping:
+      entity_name: ["denominazione"]
+      tax_id: ["codice_fiscale"]
+      municipality: ["comune"]
+      province: ["provincia"]
+      section: ["tipologia"]
+
+  - country: IT
+    region: Veneto
+    name: Albo Regionale delle Cooperative Sociali (Regione del Veneto)
+    type: PDF
+    url: https://salute.regione.veneto.it/contents/2025-12/ALBO%20COOP%20%28VERDE%29%20-%20DA%20AGG.RE%202025.pdf?VersionId=_6YoEgjjoSnzJ1A1hygExNgq1NT_6iu.
+    mapping:
+      entity_name: ["DENOMINAZIONE SOCIALE"]
+      tax_id: ["C.F./P.IVA"]
+      address: ["SEDE LEGALE"]
+      municipality: ["COMUNE"]
+      province: ["PROV."]
+      email: ["E-MAIL"]
+      pec: ["PEC"]
+      registry_id: ["N. ISCRIZ. ALBO"]
+      section: ["SEZ."]
+
+  - country: IT
+    ccaa: Lombardia (Regione)
+    name: Elenco cooperative (Regione Lombardia - Socrata)
+    type: CSV
+    url: https://www.dati.lombardia.it/api/views/mmgv-3vbx/rows.csv?accessType=DOWNLOAD
+    mapping:
+      entity_name: ["DENOMINAZIONE"]
+      city: ["COMUNE"]
+      province: ["PROVINCIA"]
+      email: ["EMAIL"]
+      phone: ["TELEFONO"]
+      legal_form_local: ["AREA"]
+
+  - country: FR
+    ccaa: France (National)
+    name: data·inclusion — structures (insertion)
+    type: CSV
+    url: https://www.data.gouv.fr/api/1/datasets/r/fd4cb3ef-5c31-4c99-92fe-2cd8016c0ca5
+    mapping:
+      entity_name: ["name", "nom", "denomination"]
+      tax_id: ["siret", "siren"]
+      city: ["commune", "city", "locality"]
+      province: ["department", "departement", "region"]
+      legal_form_local: ["kind", "type", "categorie", "category"]
+
+  - country: BE
+    ccaa: Vlaanderen
+    type: CSV
+    ei_register_name: "WEWIS Vlaanderen — Actieve erkende maatwerkbedrijven (CMW05)"
+    url: "https://opendata.wewis.vlaanderen.be/api/v2/catalog/datasets/cmw05_actief_erkend_maatwerkbedrijf_v1/exports/csv?use_labels=true"
+    enabled: true
+    mapping:
+      entity_name:
+        - VESTIGING
+        - ZETEL_MAATSCHAPPELIJKE_NAAM
+      tax_id:
+        - VESTIGINGSNUMMER
+        - ZETELNUMMER
+      postcode:
+        - VESTIGING_POSTCODE
+        - ZETEL_POSTCODE
+      city:
+        - VESTIGING_GEMEENTE
+        - ZETEL_GEMEENTE
+      region:
+        - VESTIGING_PROVINCIE
+        - ZETEL_PROVINCIE
+      last_updated:
+        - LAATSTE_UPDATE_DATUM
+      registration_number:
+        - TOEKENNINGNUMMER
+      registration_start:
+        - TOEKENNING_STARTDATUM
+
+  - country: DE
+    ccaa: National
+    type: HTML
+    parser: scrape_bag_if_accessible_list
+    enabled: true
+    ei_register_name: bag if — Unternehmensübersicht (Inklusionsunternehmen)
+    url: https://bag-if.de/unternehmensuebersicht-fuer-menschen-mit-blindheit-und-sehbehinderung/
+    mapping:
+      entity_name: ["entity_name"]
+      address: ["address"]
+      website: ["website"]
+      activity: ["activity"]
+
+  - country: AT
+    ccaa: National
+    type: HTML
+    parser: scrape_dib_integrative_betriebe
+    enabled: true
+    ei_register_name: Integrative Betriebe — Partnerbetriebe nach Bundesland (diB)
+    url: https://www.dieintegrativenbetriebe.at/kontakt
+    mapping:
+      entity_name: ["entity_name"]
+      address: ["address"]
+      postcode: ["postcode"]
+      city: ["city"]
+      region: ["region"]
+      phone: ["phone"]
+      email: ["email"]
+      website: ["website"]
+
+  - country: AT
+    ccaa: National
+    type: HTML
+    parser: scrape_sena_verified_social_enterprises
+    enabled: true
+    ei_register_name: Verified Social Enterprises (SENA)
+    url: https://www.sena.or.at/verified-social-enterprises
+    mapping:
+      entity_name: ["entity_name"]
+      website: ["website"]
+      se_recognition_type: ["se_recognition_type"]
+      se_recognition_name: ["se_recognition_name"]
+
+  - enabled: true
+
+    country: FR
+    ccaa: null
+    type: XLSX
+
+    ei_register_name: "DG Trésor – Liste nationale agréments ESUS (2024)"
+
+    # Store the XLSX locally (recommended)
+    url: "file:data/_2025-07-24.xlsx"
+
+    # Used only for metadata
+    source_page: "https://www.tresor.economie.gouv.fr/banque-assurance-finance/finance-sociale-et-solidaire/liste-nationale-agrements-esus"
+
+    mapping:
+      entity_name: ["raison sociale"]
+      tax_id: ["siren"]
+      legal_form_local: ["statut juridique de l'entreprise"]
+      city: ["commune"]
+      postcode: ["code postal"]
+      region: ["région"]
+
+  - enabled: true
+
+    country: FR
+    ccaa: null
+    type: CSV
+
+    ei_register_name: "INSEE SIRENE – ESS (Unités légales)"
+
+    url: "file:data/fr/insee/fr_insee_ess_unites_legales.csv"
+
+    mapping:
+      tax_id: ["siren"]
+      entity_name: ["denominationunitelegale", "denominationusuelle1unitelegale"]
+      legal_form_local: ["categoriejuridiqueunitelegale"]
+
+  - enabled: true
+
+    country: IT
+    ccaa: null
+    type: XLSX
+
+    ei_register_name: "RUNTS – Enti iscritti (Ministero del Lavoro)"
+
+    url: "file:data/it/runts/20260206_iscritti_v1.1.xlsx"
+
+    mapping:
+      tax_id: ["codice fiscale steuernummer"]
+      entity_name: ["denominazione bezeichnung"]
+      ei_registration_number: ["repertorio repertoire"]
+      legal_form_local: ["sezione (**) sektion"]
+      city: ["comune sede legale gemeinsame rechtssitz"]
+      province: ["provincia sede legale provinz rechtssitz"]
+
+  - enabled: true
+    country: ES
+    ccaa: null
+    type: CSV
+    ei_register_name: "CEPES — Empresas más relevantes de la Economía Social (2024–2025)"
+    url: "file:data/es/cepes/cepes_2025.csv"
+    mapping:
+      entity_name: ["entity_name"]
+      province: ["region"]   # CC.AA (Autonomous Community)
+
+  - enabled: true
+    country: ES
+    ccaa: "Andalucía"
+    name: "RSCL — Cooperativas en Andalucía (Junta de Andalucía, datos abiertos)"
+    type: "XLSX"
+
+    # Local snapshot
+    url: "file:data/es/rscl/andalucia/dataset_rscl_062025.xlsx"
+
+    source_page: "https://www.juntadeandalucia.es/datosabiertos/portal/dataset/cooperativas-en-andalucia"
+
+    mapping:
+      entity_name: ["DENOMINACIÓN"]
+      tax_id: ["CIF"]
+      city: ["MUNICIPIO"]
+      province: ["PROVINCIA"]
+      address: ["DIRECCIÓN"]
+      ei_registration_number: ["Nº INSCRIPCIÓN", "Nº INSCRIPCION"]
+      legal_form_local: ["TIPO"]
+
+  - enabled: true
+    country: ES
+    ccaa: "Catalunya"
+    name: "RECC — Registre General de Cooperatives de Catalunya"
+    type: "CSV"
+
+    url: "file:data/es/recc/catalunya/recc_catalunya_2026-02.csv"
+    source_page: "https://analisi.transparenciacatalunya.cat/d/euku-fzbx"
+
+    mapping:
+      entity_name: ["Nom"]
+      tax_id: ["CIF"]
+      city: ["Municipi"]
+      province: ["Província"]
+      address: ["Adreça"]
+      postcode: ["Codi postal"]
+      ei_registration_number: ["Número d'inscripció"]
+      legal_form_local: ["Classe de cooperativa"]
+
+  - enabled: true
+    country: ES
+    ccaa: "Comunitat Valenciana"
+    name: "GVA — Directorio de Cooperativas (2025-01)"
+    type: "CSV"
+    url: "file:data/es/gva/valencia/cooperativas-valencianas_202501.csv"
+    source_page: "https://dadesobertes.gva.es/dataset/soc-cooperativas-2025"
+    mapping:
+      entity_name: ["DS_RAZON_SOCIAL"]
+      tax_id: ["CD_NIF"]
+      city: ["DS_MUNICIPIO"]
+      province: ["DS_PROVINCIA"]
+      address: ["DS_DOMICILIO"]
+      ei_registration_number: ["CD_CLAVE_REGISTRAL"]
+      legal_form_local: ["DS_CLASE"]
+
+  - enabled: true
+    country: ES
+    ccaa: "Comunitat Valenciana"
+    name: "GVA — Directorio de Sociedades Laborales (2023-01)"
+    type: "CSV"
+    url: "file:data/es/gva/valencia/sociedades-laborales-valencianas_202301.csv"
+    source_page: "https://dadesobertes.gva.es/dataset/soc-soc-laborales-2023"
+    mapping:
+      entity_name: ["DS_RAZON_SOCIAL"]
+      tax_id: ["CD_NIF"]
+      city: ["DS_MUNICIPIO"]
+      province: ["DS_PROVINCIA"]
+      address: ["DS_DOMICILIO"]
+      ei_registration_number: ["CD_CLAVE_REGISTRAL"]
+      legal_form_local: ["DS_TIPO"]
+
+  - enabled: true
+    country: NL
+    ccaa: ""
+    name: "NL_BELASTINGDIENST_ANBI"
+    type: "CSV"
+
+    url: "file:data/nl/belastingdienst/anbi/anbi_2026-02-18/anbi_2026-02-18.csv"
+
+    source_page: "https://www.belastingdienst.nl/wps/wcm/connect/bldcontentnl/themaoverstijgend/brochures_en_publicaties/open_data_anbi"
+
+    mapping:
+      entity_name: ["naam", "aliasNaam"]
+      tax_id: ["fiscaalNummer"]
+      city: ["vestigingsPlaats"]
+      province: []
