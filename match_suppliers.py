@@ -291,31 +291,151 @@ NAME_HEURISTICS = {
 
 }
 
+GLOBAL_NAME_HEURISTICS = {
+    "coop": _rx([
+        r"\bcoop(?:erative|erativa)?\b",
+        r"\bcooperativa\b",
+        r"\bscop\b",
+        r"\bscic\b",
+        r"\bgenossenschaft\b",
+        r"\bosuuskunta\b",
+        r"\bsp[oó]łdzielnia\b",
+        r"\bdru[žz]stvo\b",
+    ]),
+    "marker": _rx([
+        r"\bvzw\b",
+        r"\basbl\b",
+        r"\baisbl\b",
+        r"\bivzw\b",
+        r"\bassociation\b",
+        r"\bfoundation\b",
+        r"\bfondation\b",
+        r"\bfondazione\b",
+        r"\bfundaci[óo]n\b",
+        r"\bstichting\b",
+        r"\bvereniging\b",
+        r"\bonlus\b",
+        r"(?:^|[\s,;\(\[])\s*(?:odv|aps)\b(?=\s*$)",
+        r"\bmutuelle\b",
+        r"\bongd?\b",
+    ]),
+    "foundation_assoc": _rx([
+        r"\bassociation\b",
+        r"\bassociazione\b",
+        r"\basociaci[óo]n\b",
+        r"\bassocia[cç][ãa]o\b",
+        r"\bstichting\b",
+        r"\bvereniging\b",
+        r"\bverein\b",
+        r"\bfoundation\b",
+        r"\bfondation\b",
+        r"\bfondazione\b",
+        r"\bfundaci[óo]n\b",
+        r"\bfunda[cç][ãa]o\b",
+    ]),
+}
+
+HEURISTIC_COUNTRY_REQUIREMENTS = {
+    "DE": {
+        "coop": "DE",
+        "ggmbh": "DE",
+    },
+    "NL": {
+        "coop": "NL",
+        "marker": "NL",
+        "foundation_assoc": "NL",
+    },
+    "BE": {
+        "coop": "BE",
+        "marker": "BE",
+        "foundation_assoc": "BE",
+    },
+    "FR": {
+        "coop": "FR",
+        "esus": "FR",
+        "marker": "FR",
+    },
+    "IT": {
+        "coop": "IT",
+        "impresa_sociale": "IT",
+        "marker": "IT",
+        "foundation_assoc": "IT",
+    },
+    "ES": {
+        "coop": "ES",
+        "marker": "ES",
+    },
+    "PT": {
+        "coop": "PT",
+        "marker": "PT",
+    },
+    "AT": {
+        "coop": "AT",
+        "marker": "AT",
+    },
+    "DK": {
+        "coop": "DK",
+        "marker": "DK",
+    },
+    "FI": {
+        "coop": "FI",
+        "marker": "FI",
+    },
+    "CZ": {
+        "coop": "CZ",
+        "marker": "CZ",
+    },
+    "IE": {
+        "coop": "IE",
+        "marker": "IE",
+    },
+    "PL": {
+        "coop": "PL",
+        "marker": "PL",
+    },
+    "SE": {
+        "coop": "SE",
+        "marker": "SE",
+    },
+    "GR": {
+        "impresa_sociale": "GR",
+    },
+    "CH": {
+        "coop": "CH",
+        "foundation_assoc": "CH",
+    },
+}
 
 def classify_name_candidates(country: str, name: str) -> dict:
     c = "" if country is None else str(country)
     c = c.strip().upper()
     name = "" if name is None else str(name)
 
-    rules = NAME_HEURISTICS.get(c, {})
+    country_rules = NAME_HEURISTICS.get(c, {})
+    rules = {}
+
+    for key in ("coop", "ggmbh", "esus", "impresa_sociale", "marker", "foundation_assoc"):
+        merged = []
+        merged.extend(GLOBAL_NAME_HEURISTICS.get(key, []))
+        merged.extend(country_rules.get(key, []))
+        rules[key] = merged
 
     out = {
         "name_coop_candidate": "NO",
         "name_marker_candidate": "NO",
         "name_candidate_reason": "",
         "name_candidate_trigger": "",
+        "name_candidate_country_requirement": "",
     }
 
     triggered = []
 
-    # Coop
     for rx in rules.get("coop", []):
         if rx.search(name):
             out["name_coop_candidate"] = "YES"
             triggered.append("coop")
             break
 
-    # Other markers
     for key in ("ggmbh", "esus", "impresa_sociale", "marker", "foundation_assoc"):
         for rx in rules.get(key, []):
             if rx.search(name):
@@ -323,7 +443,6 @@ def classify_name_candidates(country: str, name: str) -> dict:
                 triggered.append(key)
                 break
 
-    # Standardize reasons into 3 buckets
     bucket_map = {
         "coop": "coop",
         "ggmbh": "social enterprise",
@@ -341,8 +460,27 @@ def classify_name_candidates(country: str, name: str) -> dict:
 
     out["name_candidate_reason"] = ",".join(buckets)
     out["name_candidate_trigger"] = ",".join(triggered)
-    return out
 
+    # Infer country requirement from triggered country-specific rules
+    required_countries = set()
+
+    for cc, cc_map in HEURISTIC_COUNTRY_REQUIREMENTS.items():
+        for trig in triggered:
+            if cc_map.get(trig):
+                if trig in NAME_HEURISTICS.get(cc, {}):
+                    for rx in NAME_HEURISTICS[cc].get(trig, []):
+                        if rx.search(name):
+                            required_countries.add(cc)
+                            break
+
+    if len(required_countries) == 1:
+        out["name_candidate_country_requirement"] = next(iter(required_countries))
+    elif len(required_countries) > 1:
+        out["name_candidate_country_requirement"] = "MULTI"
+    else:
+        out["name_candidate_country_requirement"] = ""
+
+    return out
 
 def normalize_name(s):
     if pd.isna(s) or not str(s).strip():
@@ -378,10 +516,8 @@ def siren_of(tax_id):
         return s
     return None
 
-
-def build_block_key(norm_name, n=8):
+def build_block_key(norm_name, n=4):
     return norm_name[:n] if norm_name else ""
-
 
 # -----------------------------
 # FUZZY MATCHING HARDENING
@@ -485,6 +621,7 @@ def match_suppliers(
     suppliers_path,
     master_path,
     suppliers_name_col="entity_name",
+    suppliers_match_name_col=None,
     suppliers_tax_col=None,
     suppliers_country_col=None,
     master_name_col="entity_name",
@@ -493,39 +630,47 @@ def match_suppliers(
     master_country_col="country",
     master_region_col="region",
     score_cutoff=92,
+    trusted_entities_path=None,
+    allow_commercial_fuzzy=False,
     out_path="suppliers_matched.csv",
 ):
 
     print("Loading files...")
 
     if suppliers_path.lower().endswith((".xlsx", ".xls")):
-        sup = pd.read_excel(suppliers_path, header=None)
+        sup = pd.read_excel(suppliers_path)
     else:
-        sup = pd.read_csv(suppliers_path, header=None)
+        sup = pd.read_csv(suppliers_path)
 
-    mst = pd.read_csv(master_path)
+    mst = pd.read_csv(master_path, dtype=str, keep_default_na=False, low_memory=False)
 
     print("Normalizing names...")
 
-    # suppliers_name_col can be a column index (int or digit-string) when suppliers file has no headers
-    if isinstance(suppliers_name_col, str) and suppliers_name_col.isdigit():
-        col_idx = int(suppliers_name_col)
-    elif isinstance(suppliers_name_col, int):
-        col_idx = suppliers_name_col
+    # Supplier legal/raw name column (expects headered file)
+    if suppliers_name_col not in sup.columns:
+        raise ValueError(f"Supplier legal name column not found: {suppliers_name_col}")
+
+    sup["_supplier_raw_name"] = sup[suppliers_name_col].fillna("").astype(str)
+
+    # Optional separate supplier match-name column
+    if suppliers_match_name_col:
+        if suppliers_match_name_col not in sup.columns:
+            raise ValueError(f"Supplier match name column not found: {suppliers_match_name_col}")
+        sup["_supplier_match_name"] = sup[suppliers_match_name_col].fillna("").astype(str)
     else:
-        raise ValueError("For headerless supplier files, pass --sup-name-col as a column index (e.g. 1).")
+        sup["_supplier_match_name"] = sup["_supplier_raw_name"]
 
-    sup["_supplier_raw_name"] = sup.iloc[:, col_idx]
-
-    # Supplier country (optional; headerless supplier files use a column index)
+    # Supplier country (optional)
     if suppliers_country_col is not None:
         if isinstance(suppliers_country_col, str) and suppliers_country_col.isdigit():
             c_idx = int(suppliers_country_col)
+            sup["supplier_country"] = sup.iloc[:, c_idx].fillna("").astype(str).str.strip().str.upper()
         elif isinstance(suppliers_country_col, int):
-            c_idx = suppliers_country_col
+            sup["supplier_country"] = sup.iloc[:, suppliers_country_col].fillna("").astype(str).str.strip().str.upper()
         else:
-            raise ValueError("For headerless supplier files, pass --sup-country-col as a column index (e.g. 2).")
-        sup["supplier_country"] = sup.iloc[:, c_idx].fillna("").astype(str).str.strip().str.upper()
+            if suppliers_country_col not in sup.columns:
+                raise ValueError(f"Supplier country column not found: {suppliers_country_col}")
+            sup["supplier_country"] = sup[suppliers_country_col].fillna("").astype(str).str.strip().str.upper()
     else:
         sup["supplier_country"] = ""
 
@@ -539,7 +684,7 @@ def match_suppliers(
         .ne("column2")
     ]
 
-    sup["_norm_name"] = sup["_supplier_raw_name"].map(normalize_name)
+    sup["_norm_name"] = sup["_supplier_match_name"].map(normalize_name)
     mst["_norm_name"] = mst[master_name_col].map(normalize_name)
 
     # Country-aware name heuristics
@@ -575,14 +720,27 @@ def match_suppliers(
     sup["_siren"] = sup["_norm_tax"].map(siren_of)
     mst["_siren"] = mst["_norm_tax"].map(siren_of)
 
+
     # Output columns
     sup["social_enterprise_supplier"] = "NO"
     sup["matched_register"] = ""
     sup["matched_entity_name"] = ""
     sup["match_type"] = ""
-    sup["match_score"] = pd.NA
+    sup["match_score"] = ""
     sup["match_country"] = ""
     sup["match_region"] = ""
+
+    # Force text-safe dtypes for output columns
+    for col in [
+        "social_enterprise_supplier",
+        "matched_register",
+        "matched_entity_name",
+        "match_type",
+        "match_score",
+        "match_country",
+        "match_region",
+    ]:
+        sup[col] = sup[col].fillna("").astype(object)
 
     # -----------------------------
     # 1) TAX ID MATCHING
@@ -635,6 +793,45 @@ def match_suppliers(
                 sup.loc[hits, "match_country"] = matched[master_country_col].astype(str).str.upper().values
             if master_region_col in matched.columns:
                 sup.loc[hits, "match_region"] = matched[master_region_col].values
+
+    # -----------------------------
+    # Exact normalized name matching
+    # -----------------------------
+    print("Running exact normalized name matching...")
+
+    # Build lookup from master
+    mst_lookup = (
+        mst
+        .dropna(subset=["_norm_name"])
+        .groupby("_norm_name", as_index=False)
+        .first()
+    )
+
+    # Merge on normalized name
+    merged = sup.merge(
+        mst_lookup,
+        how="left",
+        left_on="_norm_name",
+        right_on="_norm_name",
+        suffixes=("", "_mst")
+    )
+
+    hits = merged[master_name_col].notna()
+
+    if hits.any():
+        sup.loc[hits, "social_enterprise_supplier"] = "YES"
+        sup.loc[hits, "matched_entity_name"] = merged.loc[hits, master_name_col].fillna("").astype(str).values
+        sup.loc[hits, "matched_register"] = merged.loc[hits, master_register_col].fillna("").astype(str).values
+        sup.loc[hits, "match_type"] = "name_exact_norm"
+        sup.loc[hits, "match_score"] = "100"
+
+        if master_country_col in merged.columns:
+            sup.loc[hits, "match_country"] = merged.loc[hits, master_country_col].fillna("").astype(str).values
+
+        if master_region_col in merged.columns:
+            sup.loc[hits, "match_region"] = merged.loc[hits, master_region_col].fillna("").astype(str).values
+
+    print(f"Exact normalized matches: {hits.sum()}")
 
     # -----------------------------
     # 2) FUZZY NAME MATCHING (HARDENED)
@@ -709,7 +906,12 @@ def match_suppliers(
         raw = sup.at[i, "_supplier_raw_name"]
         is_name_candidate = (sup.at[i, "social_economy_name_candidate"] == "YES")
 
-        if supplier_is_commercial(raw) and not is_name_candidate and not is_whitelisted_social_brand(raw):
+        if (
+            not allow_commercial_fuzzy
+            and supplier_is_commercial(raw)
+            and not is_name_candidate
+            and not is_whitelisted_social_brand(raw)
+        ):
             continue
 
         # -----------------------------
@@ -749,10 +951,10 @@ def match_suppliers(
         score = min(99, int(score))
 
         sup.at[i, "social_enterprise_supplier"] = "YES"
-        sup.at[i, "matched_entity_name"] = mst.at[m_idx, master_name_col]
-        sup.at[i, "matched_register"] = mst.at[m_idx, master_register_col]
+        sup.at[i, "matched_entity_name"] = str(mst.at[m_idx, master_name_col] or "")
+        sup.at[i, "matched_register"] = str(mst.at[m_idx, master_register_col] or "")
         sup.at[i, "match_type"] = "name_fuzzy"
-        sup.at[i, "match_score"] = score
+        sup.at[i, "match_score"] = str(score)
 
         if master_country_col in mst.columns:
             sup.at[i, "match_country"] = str(mst.at[m_idx, master_country_col]).strip().upper()
@@ -787,6 +989,7 @@ if __name__ == "__main__":
 
     # Suppliers file is often headerless; pass a column index (e.g. 1 for name, 2 for country)
     parser.add_argument("--sup-name-col", default="entity_name")
+    parser.add_argument("--sup-match-name-col", default=None)
     parser.add_argument("--sup-tax-col", default=None)
     parser.add_argument("--sup-country-col", default=None)
 
@@ -799,6 +1002,13 @@ if __name__ == "__main__":
 
     # Matching controls
     parser.add_argument("--threshold", type=int, default=92)
+
+    parser.add_argument(
+        "--allow-commercial-fuzzy",
+        action="store_true",
+        help="Allow fuzzy matching for commercial suppliers"
+    )
+
     parser.add_argument("--out", required=True)
 
     args = parser.parse_args()
@@ -808,6 +1018,7 @@ if __name__ == "__main__":
         master_path=args.master,
 
         suppliers_name_col=args.sup_name_col,
+        suppliers_match_name_col=args.sup_match_name_col,
         suppliers_tax_col=args.sup_tax_col,
         suppliers_country_col=args.sup_country_col,
 
@@ -818,5 +1029,6 @@ if __name__ == "__main__":
         master_region_col=args.master_region_col,
 
         score_cutoff=args.threshold,
+        allow_commercial_fuzzy=args.allow_commercial_fuzzy,
         out_path=args.out,
     )

@@ -29,6 +29,88 @@ _ES_TAX_ID_RE = re.compile(
     flags=re.IGNORECASE
 )
 
+# ---------------------------------------------------------------------
+# Belgium (CBE) legal form mapping (deterministic, precision-first)
+# ---------------------------------------------------------------------
+
+BE_LEGAL_FORM_FAMILY = {
+    "017": "ASSOCIATION",  # ASBL
+    "018": "ASSOCIATION",  # VZW
+    "020": "ASSOCIATION",  # AISBL
+    "070": "FOUNDATION",
+    "610": "COOPERATIVE",
+    "612": "COOPERATIVE",
+    "721": "COOPERATIVE",
+}
+
+FR_LEGAL_FORM_FAMILY = {
+    # Associations
+    "9220": "ASSOCIATION",
+    "9210": "ASSOCIATION",
+    "9221": "ASSOCIATION",
+    "9222": "ASSOCIATION",
+    "9223": "ASSOCIATION",
+    "9224": "ASSOCIATION",
+    "9230": "ASSOCIATION",
+    "9260": "ASSOCIATION",
+    "9300": "ASSOCIATION",
+    "9110": "ASSOCIATION",
+    "9150": "ASSOCIATION",
+
+    # Foundations
+    "5400": "FOUNDATION",
+
+    # Mutuals
+    "8510": "MUTUAL",
+    "8520": "MUTUAL",
+
+    # Cooperatives (most common ESS codes)
+    "5547": "COOPERATIVE",
+    "5558": "COOPERATIVE",
+    "5560": "COOPERATIVE",
+    "5532": "COOPERATIVE",
+    "6532": "COOPERATIVE",
+    "6316": "COOPERATIVE",
+    "6317": "COOPERATIVE",
+    "6318": "COOPERATIVE",
+
+    # Agricultural / sectoral cooperatives
+    "5710": "COOPERATIVE",
+
+    # Cooperative groupings / unions
+    "6543": "COOPERATIVE",
+    "6540": "COOPERATIVE",
+    "6411": "COOPERATIVE",
+    "5660": "COOPERATIVE",
+    "5599": "COOPERATIVE",
+    "5551": "COOPERATIVE",
+    "5552": "COOPERATIVE",
+    "5553": "COOPERATIVE",
+    "5554": "COOPERATIVE",
+    "5785": "COOPERATIVE",
+
+    # Economic interest groupings (ESS collective structures)
+    "5191": "COOPERATIVE",
+    "5194": "COOPERATIVE",
+    "5195": "COOPERATIVE",
+    "5202": "COOPERATIVE",
+    "5203": "COOPERATIVE",
+
+    # Foundations / religious or philanthropic entities
+    "5499": "FOUNDATION",
+    "5460": "FOUNDATION",
+    "5458": "FOUNDATION",
+    "5455": "FOUNDATION",
+    "5453": "FOUNDATION",
+    "5485": "FOUNDATION",
+    "5432": "FOUNDATION",
+
+    # Mutual / cooperative-like groupings (keep conservative: classify as COOPERATIVE only if you accept)
+    "6595": "COOPERATIVE",
+    "6596": "COOPERATIVE",
+    "6560": "COOPERATIVE",
+}
+
 def normalize_fr_siren(value):
     """
     Normalize SIREN to 9-digit string.
@@ -983,6 +1065,28 @@ def scrape_csv(url, ccaa, register_name):
     df = read_csv_flexible(content)
     df.columns = [str(c).strip().lower() for c in df.columns]
 
+    # -----------------------------------------
+    # France — INSEE ESS (unités légales) mapping
+    # -----------------------------------------
+    if country == "FR" and "siren" in df.columns and "categoriejuridiqueunitelegale" in df.columns:
+        name_col_fr = "denominationunitelegale" if "denominationunitelegale" in df.columns else None
+        for _, rec in df.iterrows():
+            siren = clean_text(rec.get("siren"))
+            if not siren:
+                continue
+
+            out.append({
+                "country": "FR",
+                "ccaa": "France (National)",
+                "ei_register_name": register_name,
+                "ei_registration_number": None,
+                "entity_name": clean_text(rec.get(name_col_fr)) if name_col_fr else "",
+                "tax_id": normalize_fr_siren(siren),
+                "legal_form_local": clean_text(rec.get("categoriejuridiqueunitelegale")),
+            })
+
+        return out
+
     # ... keep the rest of your existing scrape_csv logic below ...
 
     # Common name columns (Catalunya/JCyL often have something like this)
@@ -1344,8 +1448,17 @@ def run_pipeline(
         if not s.get("enabled", True):
             continue
 
-        country = str(s.get("country", "")).upper()
+        country = str(s.get("country", "") or "").strip().upper()
         ccaa = s.get("ccaa")
+
+        # Back-compat: many configs use ccaa="BE"/"NL" for country-level sources.
+        # If country is missing and ccaa looks like an ISO-2 code, treat it as country.
+        if (not country) and isinstance(ccaa, str):
+            ccaa_clean = ccaa.strip().upper()
+            if len(ccaa_clean) == 2 and ccaa_clean.isalpha():
+                country = ccaa_clean
+                ccaa = None  # keep ccaa for Spanish regions only
+
         stype = s.get("type")
         name = (s.get("ei_register_name") or s.get("register_name") or s.get("name") or "").strip()
         url = s.get("url")
@@ -1450,7 +1563,37 @@ def run_pipeline(
                 "se_recognition_evidence",
             ]:
                 if opt_col not in df.columns:
-                    df[opt_col] = None
+                    df[opt_col] = None 
+            # Deterministic BE legal-form mapping
+            if country == "BE":
+                lf = df["legal_form_local"].fillna("").astype(str).str.strip()
+                mapped = lf.map(BE_LEGAL_FORM_FAMILY)
+                df["base_legal_form_family"] = df["base_legal_form_family"].where(
+                    df["base_legal_form_family"].notna(),
+                    mapped
+                )
+            # Deterministic FR legal-form mapping (INSEE categorie juridique)
+            if country == "FR":
+                lf = df["legal_form_local"].fillna("").astype(str).str.strip()
+                mapped = lf.map(FR_LEGAL_FORM_FAMILY)
+                df["base_legal_form_family"] = df["base_legal_form_family"].where(
+                    df["base_legal_form_family"].notna(),
+                    mapped
+                )
+
+            # Treat BE CBE extract as Extended (legal-form based recognition)
+            if country == "BE" and "CBE/KBO" in (name or ""):
+                df["se_recognition_type"] = "legal_form"
+                df["se_recognition_name"] = "CBE/KBO juridical form"
+                df["se_recognition_evidence"] = (
+                    "JuridicalForm allowlist: 017,018,020,070,610,612,721"
+                )
+
+            # Treat DE BZSt ZER extract as Core (tax-designation register)
+            if country == "DE" and "Zuwendungsempfängerregister" in (name or ""):
+                df["se_recognition_type"] = "tax_designation"
+                df["se_recognition_name"] = "BZSt Zuwendungsempfängerregister"
+                df["se_recognition_evidence"] = "Listed as eligible donation recipient (ZER)"
 
             # Ensure tax_id exists
             if "tax_id" not in df.columns:
@@ -1461,9 +1604,12 @@ def run_pipeline(
             if fn is not None and df["tax_id"].notna().any():
                 df["tax_id"] = df["tax_id"].apply(fn)
 
+            # Force canonical source-level geography (avoid address-country leakage)
+            df["country"] = country
+            df["ccaa"] = ccaa
+
             rows = len(df)
             frames.append(df)
-
 
             print(f"    Extracted rows: {rows}")
 

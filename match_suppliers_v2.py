@@ -365,19 +365,33 @@ def normalize_tax_id(s):
 
 
 def siren_of(tax_id):
-    """Extract 9-digit SIREN from SIREN or SIRET. Returns None if invalid."""
+    """Extract SIREN from French VAT or SIRET safely."""
     if pd.isna(tax_id):
         return None
-    s = str(tax_id).strip()
-    if not s or s.lower() == "nan":
-        return None
-    s = re.sub(r"\D", "", s)
-    if len(s) == 14:
-        return s[:9]
-    if len(s) == 9:
-        return s
-    return None
 
+    s = str(tax_id).strip().upper().replace(" ", "")
+    if not s or s == "NAN":
+        return None
+
+    # Ignore obvious dummy VATs
+    if s.startswith("FR") and s.endswith("99999999999"):
+        return None
+
+    # Case 1: FR VAT → extract SIREN (last 9 digits)
+    m = re.match(r"FR[A-Z0-9]{2}(\d{9})", s)
+    if m:
+        return m.group(1)
+
+    # Case 2: numeric SIRET → first 9 digits
+    digits = re.sub(r"\D", "", s)
+    if len(digits) == 14:
+        return digits[:9]
+
+    # Case 3: pure SIREN
+    if len(digits) == 9:
+        return digits
+
+    return None
 
 def build_block_key(norm_name, n=8):
     return norm_name[:n] if norm_name else ""
@@ -510,7 +524,7 @@ def _load_trusted_brands_from_csv(path: str):
 
 def _compile_brand_regexes(brands):
     # Word-boundary match to reduce accidental hits (same as legacy behavior)
-    return [re.compile(rf"{re.escape(b.lower())}") for b in brands]
+    return [re.compile(rf"\b{re.escape(b.lower())}\b") for b in brands]
 
 def is_whitelisted_social_brand(raw: str, brand_regexes=None) -> bool:
     """Return True if supplier raw name contains a trusted brand token."""
@@ -544,19 +558,19 @@ def match_suppliers(
     else:
         sup = pd.read_csv(suppliers_path, header=None)
 
-    mst = pd.read_csv(master_path)
+    mst = pd.read_csv(master_path, dtype=str, keep_default_na=False, low_memory=False)
 
     print("Normalizing names...")
 
-# -----------------------------
-# Trusted entities (replaces hard-coded SOCIAL_BRANDS)
-# -----------------------------
-if trusted_entities_path:
-    trusted_brands = _load_trusted_brands_from_csv(trusted_entities_path)
-    print(f"Loaded {len(trusted_brands)} trusted brands from:", trusted_entities_path)
-else:
-    trusted_brands = list(SOCIAL_BRANDS)
-trusted_brand_regexes = _compile_brand_regexes(trusted_brands)
+    # -----------------------------
+    # Trusted entities (replaces hard-coded SOCIAL_BRANDS)
+    # -----------------------------
+    if trusted_entities_path:
+        trusted_brands = _load_trusted_brands_from_csv(trusted_entities_path)
+        print(f"Loaded {len(trusted_brands)} trusted brands from:", trusted_entities_path)
+    else:
+        trusted_brands = list(SOCIAL_BRANDS)
+    trusted_brand_regexes = _compile_brand_regexes(trusted_brands)
 
 
     # suppliers_name_col can be a column index (int or digit-string) when suppliers file has no headers
@@ -613,7 +627,13 @@ trusted_brand_regexes = _compile_brand_regexes(trusted_brands)
 
     # Tax columns
     if suppliers_tax_col:
-        sup["_norm_tax"] = sup[suppliers_tax_col].map(normalize_tax_id)
+        if isinstance(suppliers_tax_col, str) and suppliers_tax_col.isdigit():
+            t_idx = int(suppliers_tax_col)
+            sup["_norm_tax"] = sup.iloc[:, t_idx].map(normalize_tax_id)
+        elif isinstance(suppliers_tax_col, int):
+            sup["_norm_tax"] = sup.iloc[:, suppliers_tax_col].map(normalize_tax_id)
+        else:
+            sup["_norm_tax"] = sup[suppliers_tax_col].map(normalize_tax_id)
     else:
         sup["_norm_tax"] = ""
 
@@ -642,7 +662,11 @@ trusted_brand_regexes = _compile_brand_regexes(trusted_brands)
     if suppliers_tax_col and mst["_norm_tax"].astype(bool).any():
         print("Running tax ID matching...")
 
-        mst_tax_index = mst[mst["_norm_tax"].astype(bool)].set_index("_norm_tax", drop=False)
+        mst_tax_index = (
+            mst[mst["_norm_tax"].astype(bool)]
+            .drop_duplicates("_norm_tax", keep="first")
+            .set_index("_norm_tax", drop=False)
+        )
 
         hits = sup["_norm_tax"].astype(bool) & sup["_norm_tax"].isin(mst_tax_index.index)
 
@@ -666,27 +690,54 @@ trusted_brand_regexes = _compile_brand_regexes(trusted_brands)
     if mst["_siren"].astype(bool).any() and sup["_siren"].astype(bool).any():
         print("Running SIREN/SIRET bridge matching...")
 
-        mst_siren_index = mst[mst["_siren"].astype(bool)].set_index("_siren", drop=False)
+        mst_siren_index = (
+            mst[
+                mst["_siren"].astype(bool)
+                & mst[master_name_col].fillna("").astype(str).str.strip().astype(bool)
+                & mst[master_country_col].fillna("").astype(str).str.upper().eq("FR")
+            ]
+            .drop_duplicates("_siren", keep="first")
+            .set_index("_siren", drop=False)
+        )
+
+        # Filter out dummy VATs (e.g. FR99999999999)
+        valid_tax = ~sup["_norm_tax"].str.contains(r"99999999999", na=False)
 
         hits = (
             sup["social_enterprise_supplier"].ne("YES")
             & sup["_siren"].astype(bool)
+            & valid_tax
+            & (sup["supplier_country"] == "FR")
             & sup["_siren"].isin(mst_siren_index.index)
         )
 
         if hits.any():
             matched = mst_siren_index.loc[sup.loc[hits, "_siren"]].reset_index(drop=True)
 
-            sup.loc[hits, "social_enterprise_supplier"] = "YES"
-            sup.loc[hits, "matched_register"] = matched[master_register_col].values
-            sup.loc[hits, "matched_entity_name"] = matched[master_name_col].values
-            sup.loc[hits, "match_type"] = "tax_id_siren_bridge"
-            sup.loc[hits, "match_score"] = 98
+            # Require at least 1 shared meaningful token between supplier and matched master name
+            sup_names = sup.loc[hits, "_norm_name"].reset_index(drop=True)
+            mst_names = matched["_norm_name"].reset_index(drop=True)
 
-            if master_country_col in matched.columns:
-                sup.loc[hits, "match_country"] = matched[master_country_col].astype(str).str.upper().values
-            if master_region_col in matched.columns:
-                sup.loc[hits, "match_region"] = matched[master_region_col].values
+            valid_name = [
+                has_min_shared_tokens(s, m, k=1)
+                for s, m in zip(sup_names, mst_names)
+            ]
+
+            valid_hit_index = sup.loc[hits].index[valid_name]
+            hits = sup.index.isin(valid_hit_index)
+            matched = matched.loc[valid_name].reset_index(drop=True)
+
+            if hits.any():
+                sup.loc[hits, "social_enterprise_supplier"] = "YES"
+                sup.loc[hits, "matched_register"] = matched[master_register_col].values
+                sup.loc[hits, "matched_entity_name"] = matched[master_name_col].values
+                sup.loc[hits, "match_type"] = "tax_id_siren_bridge"
+                sup.loc[hits, "match_score"] = 98
+
+                if master_country_col in matched.columns:
+                    sup.loc[hits, "match_country"] = matched[master_country_col].astype(str).str.upper().values
+                if master_region_col in matched.columns:
+                    sup.loc[hits, "match_region"] = matched[master_region_col].values
 
     # -----------------------------
     # 2) FUZZY NAME MATCHING (HARDENED)

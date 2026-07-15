@@ -6,3 +6,15 @@ data/
 __pycache__/
 *.pyc
 match_data/*.xlsx
+
+# Local/generated files
+*.xlsx
+*.xls
+*.pdf
+*.bak
+*.bak.*
+*.save
+
+# Local audit/output material
+audit/
+be_names.txt

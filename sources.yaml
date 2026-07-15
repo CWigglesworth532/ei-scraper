@@ -229,6 +229,12 @@ sources:
       website: ["website"]
       activity: ["activity"]
 
+  - country: "DE"
+    name: "BZSt — Zuwendungsempfängerregister (local build)"
+    url: "file:data/de/bzst/zuwendung/de_bzst_zer_latest.csv"
+    type: "CSV"
+    enabled: true
+
   - country: AT
     ccaa: National
     type: HTML
@@ -395,7 +401,7 @@ sources:
       ei_registration_number: ["CD_CLAVE_REGISTRAL"]
       legal_form_local: ["DS_TIPO"]
 
-  - enabled: true
+  - enabled: false
     country: NL
     ccaa: ""
     name: "NL_BELASTINGDIENST_ANBI"
@@ -410,3 +416,119 @@ sources:
       tax_id: ["fiscaalNummer"]
       city: ["vestigingsPlaats"]
       province: []
+
+  - enabled: true
+    country: BE
+    ccaa: "Vlaanderen"
+    name: "BE_WEWIS_VLAANDEREN_DCE01"
+    type: "CSV"
+
+    url: "file:data/be/wewis/vlaanderen/dce01/dce01_2026-02-18.csv"
+
+    source_page: "https://opendata.wewis.vlaanderen.be/explore/dataset/dce01_bijkomende_kost_onderneming_v1/"
+
+    mapping:
+      entity_name: ["NAAM", "HANDELSNAAM"]
+      tax_id: ["ONDERNEMINGSNUMMER"]
+      city: []
+      province: []
+
+  - enabled: true
+    country: BE
+    ccaa: "Vlaanderen"
+    name: "BE_WEWIS_VLAANDEREN_KDB01"
+    type: "CSV"
+
+    url: "file:data/be/wewis/vlaanderen/kdb01/kdb01_2026-02-18.csv"
+
+    source_page: "https://opendata.wewis.vlaanderen.be/explore/dataset/kdb01_dienstverleners_met_kwaliteitsregistratie_v1/"
+
+    mapping:
+      entity_name: ["ONDERNEMINGSNAAM"]
+      tax_id: ["ONDERNEMINGSNUMMER"]
+      city: ["GEMEENTE"]
+      province: ["PROVINCIE"]
+
+  - enabled: true
+    country: BE
+    ccaa: "Vlaanderen"
+    name: "BE_WSE_VLAANDEREN_AMA03"
+    type: "CSV"
+
+    url: "file:data/be/wse/vlaanderen/ama03/ama03_2026-02-18.csv"
+
+    source_page: "https://opendata.wse.vlaanderen.be/explore/dataset/ama03_werkgever_v1/"
+
+    mapping:
+      entity_name: ["MAATSCHAPPELIJKE NAAM"]
+      tax_id: ["ONDERNEMINGSNR"]
+      city: ["GEMEENTE"]
+      province: ["PROVINCIE"]
+
+  - enabled: true
+    country: BE
+    ccaa: "Vlaanderen"
+    name: "BE_WEWIS_VLAANDEREN_CMW04"
+    type: "CSV"
+
+    url: "file:data/be/wewis/vlaanderen/cmw04/cmw04_2026-02-18.csv"
+
+    source_page: "https://opendata.wewis.vlaanderen.be/explore/dataset/cmw04_werkgever_v1/"
+
+    mapping:
+      entity_name: ["MAATSCHAPPELIJKE_NAAM"]
+      tax_id: ["VESTIGINGSNUMMER"]
+      city: ["GEMEENTE"]
+      province: ["PROVINCIE"]
+
+  - enabled: true
+    country: PT
+    ccaa: ""
+    name: "PT_AT_CONSIGNACAO_IRS_2024"
+    type: "CSV"
+
+    url: "file:data/pt/at/consignacao_irs/consignacao_irs_2024_2026-02-18.csv"
+
+    source_page: "https://info.portaldasfinancas.gov.pt/pt/apoio_contribuinte/IRS/Pages/IRS_entidades_beneficiarias_consignacao.aspx"
+
+    mapping:
+      entity_name: ["NOME"]
+      tax_id: ["NIPC"]
+      city: ["LOCALIDADE"]
+      province: []
+
+  - enabled: true
+    country: IE
+    ccaa: ""
+    name: "IE_CHARITIES_REGULATOR_REGISTER"
+    type: "CSV"
+
+    url: "file:data/ie/charitiesregulator/register/register_2026-02-18.registered_dedup.csv"
+
+    source_page: "https://data.gov.ie/dataset/register-of-charities-in-ireland"
+
+    mapping:
+      entity_name: ["Registered Charity Name"]
+      tax_id: ["Registered Charity Number"]
+      city: ["city"]
+      province: ["province"]
+
+  # ======================
+  # NETHERLANDS (NL)
+  # ======================
+
+  - ccaa: "NL"
+    name: "Belastingdienst — ANBI (XML→CSV local, RSIN)"
+    url: "file:data/nl/anbi/anbi_latest.csv"
+    type: "CSV"
+
+  - ccaa: "NL"
+    name: "Belastingdienst — Overzicht steunstichtingen SBBI (HTML)"
+    url: "https://www.belastingdienst.nl/wps/wcm/connect/bldcontentnl/belastingdienst/zakelijk/bijzondere_regelingen/goede_doelen/steunstichtingen_sbbi/overzicht_steunstichtingen_sbbi"
+    type: "HTML"
+    enabled: true
+
+  - ccaa: "BE"
+    name: "CBE/KBO — Social Economy (filtered legal forms)"
+    url: "file:data/be/cbe/be_cbe_social_economy_latest.csv"
+    type: "CSV"
