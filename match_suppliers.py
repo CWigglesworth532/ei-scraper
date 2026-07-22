@@ -799,39 +799,128 @@ def match_suppliers(
     # -----------------------------
     print("Running exact normalized name matching...")
 
-    # Build lookup from master
-    mst_lookup = (
-        mst
-        .dropna(subset=["_norm_name"])
-        .groupby("_norm_name", as_index=False)
-        .first()
+    # Normalise country keys. Where a supplier country is known, exact-name
+    # matching must remain within that country.
+    if master_country_col in mst.columns:
+        mst["_exact_country"] = (
+            mst[master_country_col]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+    else:
+        mst["_exact_country"] = ""
+
+    sup["_exact_country"] = (
+        sup["supplier_country"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.upper()
     )
 
-    # Merge on normalized name
-    merged = sup.merge(
-        mst_lookup,
-        how="left",
-        left_on="_norm_name",
-        right_on="_norm_name",
-        suffixes=("", "_mst")
+    # Only unmatched suppliers are eligible for exact-name matching.
+    exact_remaining = (
+        sup["social_enterprise_supplier"].ne("YES")
+        & sup["_norm_name"].astype(bool)
     )
 
-    hits = merged[master_name_col].notna()
+    # Apply the same commercial-supplier safety principle used by fuzzy
+    # matching. Commercial suppliers are not accepted by name alone unless
+    # they carry a social-economy name marker or are explicitly whitelisted.
+    exact_allowed = sup.apply(
+        lambda r: (
+            not supplier_is_commercial(r["_supplier_raw_name"])
+            or r["social_economy_name_candidate"] == "YES"
+            or is_whitelisted_social_brand(r["_supplier_raw_name"])
+        ),
+        axis=1,
+    )
 
-    if hits.any():
-        sup.loc[hits, "social_enterprise_supplier"] = "YES"
-        sup.loc[hits, "matched_entity_name"] = merged.loc[hits, master_name_col].fillna("").astype(str).values
-        sup.loc[hits, "matched_register"] = merged.loc[hits, master_register_col].fillna("").astype(str).values
-        sup.loc[hits, "match_type"] = "name_exact_norm"
-        sup.loc[hits, "match_score"] = "100"
+    exact_remaining &= exact_allowed
 
-        if master_country_col in merged.columns:
-            sup.loc[hits, "match_country"] = merged.loc[hits, master_country_col].fillna("").astype(str).values
+    # A normalized name-country pair must resolve to exactly one master row.
+    # This avoids silently selecting an arbitrary entity with groupby().first().
+    master_exact = mst[
+        mst["_norm_name"].astype(bool)
+        & mst["_exact_country"].astype(bool)
+    ].copy()
 
-        if master_region_col in merged.columns:
-            sup.loc[hits, "match_region"] = merged.loc[hits, master_region_col].fillna("").astype(str).values
+    exact_counts = (
+        master_exact
+        .groupby(["_norm_name", "_exact_country"])
+        .size()
+        .rename("_exact_count")
+        .reset_index()
+    )
 
-    print(f"Exact normalized matches: {hits.sum()}")
+    unique_master_exact = (
+        master_exact
+        .merge(
+            exact_counts,
+            on=["_norm_name", "_exact_country"],
+            how="left",
+        )
+    )
+
+    unique_master_exact = unique_master_exact[
+        unique_master_exact["_exact_count"].eq(1)
+    ]
+
+    # Preserve supplier indices explicitly so assignments cannot become
+    # misaligned after the merge.
+    supplier_exact = (
+        sup.loc[exact_remaining]
+        .reset_index()
+        .rename(columns={"index": "_supplier_index"})
+    )
+
+    exact_matches = supplier_exact.merge(
+        unique_master_exact,
+        how="inner",
+        on=["_norm_name", "_exact_country"],
+        suffixes=("", "_mst"),
+    )
+
+    if not exact_matches.empty:
+        supplier_indices = exact_matches["_supplier_index"].astype(int).tolist()
+
+        sup.loc[supplier_indices, "social_enterprise_supplier"] = "YES"
+        sup.loc[supplier_indices, "matched_entity_name"] = (
+            exact_matches[master_name_col]
+            .fillna("")
+            .astype(str)
+            .values
+        )
+        sup.loc[supplier_indices, "matched_register"] = (
+            exact_matches[master_register_col]
+            .fillna("")
+            .astype(str)
+            .values
+        )
+        sup.loc[supplier_indices, "match_type"] = "name_exact_norm"
+        sup.loc[supplier_indices, "match_score"] = "100"
+
+        if master_country_col in exact_matches.columns:
+            sup.loc[supplier_indices, "match_country"] = (
+                exact_matches[master_country_col]
+                .fillna("")
+                .astype(str)
+                .str.strip()
+                .str.upper()
+                .values
+            )
+
+        if master_region_col in exact_matches.columns:
+            sup.loc[supplier_indices, "match_region"] = (
+                exact_matches[master_region_col]
+                .fillna("")
+                .astype(str)
+                .values
+            )
+
+    print(f"Exact normalized matches: {len(exact_matches)}")
 
     # -----------------------------
     # 2) FUZZY NAME MATCHING (HARDENED)
