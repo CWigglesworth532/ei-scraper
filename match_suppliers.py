@@ -503,17 +503,42 @@ def normalize_tax_id(s):
 
 
 def siren_of(tax_id):
-    """Extract 9-digit SIREN from SIREN or SIRET. Returns None if invalid."""
+    """
+    Extract a 9-digit French SIREN from:
+      - a 9-digit SIREN;
+      - a 14-digit SIRET;
+      - a French VAT number: FR + 2-character key + 9-digit SIREN.
+
+    Rejects tax identifiers carrying any non-French alphabetic prefix.
+    """
     if pd.isna(tax_id):
         return None
-    s = str(tax_id).strip()
-    if not s or s.lower() == "nan":
+
+    raw = str(tax_id).strip().upper()
+
+    if not raw or raw in {"NAN", "NONE", "NULL"}:
         return None
-    s = re.sub(r"\D", "", s)
-    if len(s) == 14:
-        return s[:9]
-    if len(s) == 9:
-        return s
+
+    compact = re.sub(r"[^A-Z0-9]", "", raw)
+
+    # French VAT: FR + two-character control key + nine-digit SIREN.
+    if compact.startswith("FR") and len(compact) == 13:
+        siren = compact[-9:]
+        if siren.isdigit():
+            return siren
+        return None
+
+    # Reject identifiers containing alphabetic characters unless they were
+    # handled above as a valid French VAT number.
+    if re.search(r"[A-Z]", compact):
+        return None
+
+    if len(compact) == 14 and compact.isdigit():
+        return compact[:9]
+
+    if len(compact) == 9 and compact.isdigit():
+        return compact
+
     return None
 
 def build_block_key(norm_name, n=4):
@@ -772,27 +797,105 @@ def match_suppliers(
     if mst["_siren"].astype(bool).any() and sup["_siren"].astype(bool).any():
         print("Running SIREN/SIRET bridge matching...")
 
-        mst_siren_index = mst[mst["_siren"].astype(bool)].set_index("_siren", drop=False)
+        # Build a compact, unambiguous SIREN lookup.
+        # Multiple SIRET establishments can share one SIREN, so never index
+        # directly into the full duplicated master table.
+        valid_master_siren = (
+            mst["_siren"].notna()
+            & mst["_siren"].fillna("").astype(str).str.fullmatch(r"\d{9}")
+        )
+
+        mst_siren = mst[valid_master_siren].copy()
+
+        if master_country_col in mst_siren.columns:
+            mst_siren["_siren_country"] = (
+                mst_siren[master_country_col]
+                .fillna("")
+                .astype(str)
+                .str.strip()
+                .str.upper()
+            )
+        else:
+            mst_siren["_siren_country"] = ""
+
+        # SIREN/SIRET bridging is France-specific.
+        mst_siren = mst_siren[mst_siren["_siren_country"].eq("FR")]
+
+        # Keep one representative master row per SIREN.
+        # Establishment-level duplicates should not multiply supplier rows.
+        mst_siren_lookup = (
+            mst_siren
+            .sort_values(
+                by=["_siren", master_name_col, master_register_col],
+                kind="stable",
+            )
+            .drop_duplicates(subset=["_siren"], keep="first")
+            .set_index("_siren", drop=False)
+        )
+
+        supplier_country = (
+            sup["supplier_country"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+
+        valid_supplier_siren = (
+            sup["_siren"].notna()
+            & sup["_siren"].fillna("").astype(str).str.fullmatch(r"\d{9}")
+        )
 
         hits = (
             sup["social_enterprise_supplier"].ne("YES")
-            & sup["_siren"].astype(bool)
-            & sup["_siren"].isin(mst_siren_index.index)
+            & valid_supplier_siren
+            & supplier_country.eq("FR")
+            & sup["_siren"].isin(mst_siren_lookup.index)
         )
 
         if hits.any():
-            matched = mst_siren_index.loc[sup.loc[hits, "_siren"]].reset_index(drop=True)
+            supplier_indices = sup.index[hits]
+            siren_keys = sup.loc[supplier_indices, "_siren"]
 
-            sup.loc[hits, "social_enterprise_supplier"] = "YES"
-            sup.loc[hits, "matched_register"] = matched[master_register_col].values
-            sup.loc[hits, "matched_entity_name"] = matched[master_name_col].values
-            sup.loc[hits, "match_type"] = "tax_id_siren_bridge"
-            sup.loc[hits, "match_score"] = 98
+            matched = (
+                mst_siren_lookup
+                .reindex(siren_keys.values)
+                .reset_index(drop=True)
+            )
+
+            sup.loc[supplier_indices, "social_enterprise_supplier"] = "YES"
+            sup.loc[supplier_indices, "matched_register"] = (
+                matched[master_register_col]
+                .fillna("")
+                .astype(str)
+                .values
+            )
+            sup.loc[supplier_indices, "matched_entity_name"] = (
+                matched[master_name_col]
+                .fillna("")
+                .astype(str)
+                .values
+            )
+            sup.loc[supplier_indices, "match_type"] = "tax_id_siren_bridge"
+            sup.loc[supplier_indices, "match_score"] = "98"
 
             if master_country_col in matched.columns:
-                sup.loc[hits, "match_country"] = matched[master_country_col].astype(str).str.upper().values
+                sup.loc[supplier_indices, "match_country"] = (
+                    matched[master_country_col]
+                    .fillna("")
+                    .astype(str)
+                    .str.strip()
+                    .str.upper()
+                    .values
+                )
+
             if master_region_col in matched.columns:
-                sup.loc[hits, "match_region"] = matched[master_region_col].values
+                sup.loc[supplier_indices, "match_region"] = (
+                    matched[master_region_col]
+                    .fillna("")
+                    .astype(str)
+                    .values
+                )
 
     # -----------------------------
     # Exact normalized name matching
