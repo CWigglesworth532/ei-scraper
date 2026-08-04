@@ -173,6 +173,10 @@ class CanonicalSafeListResolver:
             str,
             list[dict[str, str]],
         ] = {}
+        self.identifier_value_lookup: dict[
+            str,
+            list[dict[str, str]],
+        ] = {}
         self.brand_rows: list[
             tuple[re.Pattern[str], dict[str, str]]
         ] = []
@@ -209,6 +213,21 @@ class CanonicalSafeListResolver:
                 if key:
                     self.identifier_lookup.setdefault(
                         key,
+                        [],
+                    ).append(payload)
+
+                    value_key = "|".join(
+                        [
+                            payload["country"],
+                            normalize_identifier(
+                                row.get(
+                                    "identifier_value_normalized"
+                                )
+                            ),
+                        ]
+                    )
+                    self.identifier_value_lookup.setdefault(
+                        value_key,
                         [],
                     ).append(payload)
                 continue
@@ -318,6 +337,31 @@ class CanonicalSafeListResolver:
             "canonical_safe_identifier",
         )
 
+    def resolve_identifier_value(
+        self,
+        *,
+        country: Any,
+        identifier_value: Any,
+    ) -> SafeListMatch | None:
+        """Resolve a value where the source lacks identifier type.
+
+        Resolution succeeds only when country and normalized value identify
+        one unique canonical entity across all accepted identifier types.
+        """
+        country_norm = _country_key(country)
+        value_norm = normalize_identifier(identifier_value)
+
+        if not country_norm or not value_norm:
+            return None
+
+        return self._unique_match(
+            self.identifier_value_lookup.get(
+                f"{country_norm}|{value_norm}",
+                [],
+            ),
+            "canonical_safe_identifier",
+        )
+
     def resolve_exact_name(
         self,
         *,
@@ -386,11 +430,18 @@ class CanonicalSafeListResolver:
         identifier_value: Any = "",
     ) -> SafeListMatch | None:
         """Resolve using identifier, exact name, then approved brand."""
-        identifier_match = self.resolve_identifier(
-            country=country,
-            identifier_type=identifier_type,
-            identifier_value=identifier_value,
-        )
+        if clean_text(identifier_type):
+            identifier_match = self.resolve_identifier(
+                country=country,
+                identifier_type=identifier_type,
+                identifier_value=identifier_value,
+            )
+        else:
+            identifier_match = self.resolve_identifier_value(
+                country=country,
+                identifier_value=identifier_value,
+            )
+
         if identifier_match is not None:
             return identifier_match
 

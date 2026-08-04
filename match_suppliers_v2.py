@@ -549,6 +549,7 @@ def match_suppliers(
     master_region_col="region",
     score_cutoff=92,
     trusted_entities_path=None,
+    canonical_safe_list_path=None,
     out_path="suppliers_matched.csv",
 ):
 
@@ -571,7 +572,36 @@ def match_suppliers(
         print(f"Loaded {len(trusted_brands)} trusted brands from:", trusted_entities_path)
     else:
         trusted_brands = list(SOCIAL_BRANDS)
-    trusted_brand_regexes = _compile_brand_regexes(trusted_brands)
+    canonical_safe_resolver = None
+
+    if canonical_safe_list_path:
+        from canonical_matcher_safe_list import (
+            CanonicalSafeListResolver,
+        )
+
+        canonical_safe_resolver = (
+            CanonicalSafeListResolver.from_csv(
+                canonical_safe_list_path
+            )
+        )
+
+        canonical_brands = (
+            canonical_safe_resolver.approved_brand_names()
+        )
+        trusted_brands = list(
+            dict.fromkeys(
+                [*trusted_brands, *canonical_brands]
+            )
+        )
+
+        print(
+            "Loaded canonical safe list from:",
+            canonical_safe_list_path,
+        )
+
+    trusted_brand_regexes = _compile_brand_regexes(
+        trusted_brands
+    )
 
 
     # suppliers_name_col can be a column index (int or digit-string) when suppliers file has no headers
@@ -656,6 +686,46 @@ def match_suppliers(
     sup["match_score"] = pd.NA
     sup["match_country"] = ""
     sup["match_region"] = ""
+    sup["matched_entity_id"] = ""
+    sup["matched_source_record_id"] = ""
+    sup["canonical_safe_term_type"] = ""
+
+    # -----------------------------
+    # 0) CANONICAL SAFE-LIST MATCHING
+    # -----------------------------
+    if canonical_safe_resolver is not None:
+        print("Running canonical safe-list matching...")
+
+        for i in sup.index:
+            safe_match = canonical_safe_resolver.resolve_supplier(
+                supplier_name=sup.at[i, "_supplier_raw_name"],
+                country=sup.at[i, "supplier_country"],
+                identifier_value=sup.at[i, "_norm_tax"],
+            )
+
+            if safe_match is None:
+                continue
+
+            sup.at[i, "social_enterprise_supplier"] = "YES"
+            sup.at[i, "matched_entity_name"] = (
+                safe_match.term_raw
+            )
+            sup.at[i, "match_type"] = (
+                safe_match.match_method
+            )
+            sup.at[i, "match_score"] = 100
+            sup.at[i, "match_country"] = (
+                safe_match.country
+            )
+            sup.at[i, "matched_entity_id"] = (
+                safe_match.entity_id
+            )
+            sup.at[i, "matched_source_record_id"] = (
+                safe_match.source_record_id
+            )
+            sup.at[i, "canonical_safe_term_type"] = (
+                safe_match.term_type
+            )
 
     # -----------------------------
     # 1) TAX ID MATCHING
@@ -669,7 +739,11 @@ def match_suppliers(
             .set_index("_norm_tax", drop=False)
         )
 
-        hits = sup["_norm_tax"].astype(bool) & sup["_norm_tax"].isin(mst_tax_index.index)
+        hits = (
+            sup["social_enterprise_supplier"].ne("YES")
+            & sup["_norm_tax"].astype(bool)
+            & sup["_norm_tax"].isin(mst_tax_index.index)
+        )
 
         if hits.any():
             matched = mst_tax_index.loc[sup.loc[hits, "_norm_tax"]].reset_index(drop=True)
@@ -1147,7 +1221,15 @@ if __name__ == "__main__":
 
     # Matching controls
     parser.add_argument("--threshold", type=int, default=92)
-    parser.add_argument("--trusted-entities", default=None, help="CSV of trusted brands/entities; rows with publish_status in {published,draft} are included")
+    parser.add_argument("--trusted-entities", default=None, help="Legacy CSV of trusted brands/entities; rows with publish_status in {published,draft} are included")
+    parser.add_argument(
+        "--canonical-safe-list",
+        default=None,
+        help=(
+            "Derived trusted_match_terms.csv containing "
+            "approved entity-linked canonical terms"
+        ),
+    )
     parser.add_argument("--out", required=True)
 
     args = parser.parse_args()
@@ -1168,5 +1250,6 @@ if __name__ == "__main__":
 
         score_cutoff=args.threshold,
         trusted_entities_path=args.trusted_entities,
+        canonical_safe_list_path=args.canonical_safe_list,
         out_path=args.out,
     )
