@@ -1,0 +1,9 @@
+country,ei_register_name,ei_registration_number,entity_name,entity_name_norm,tax_id,tax_id_root,source_url,source_type,retrieved_at
+IE,Synthetic Cooperative Register,IE-COOP-12345,Example Community Cooperative Ltd,example community cooperative ltd,IECOOP12345,IECOOP12345,https://example.invalid/ie/1,csv,2026-08-04
+IE,Synthetic Tax Register,,Example Community Co-operative,example community co operative,IECOOP12345,IECOOP12345,https://example.invalid/ie/2,csv,2026-08-04
+FR,Synthetic French Register,,Association Exemple Nord,association exemple nord,12345678900011,123456789,https://example.invalid/fr/1,csv,2026-08-04
+FR,Synthetic French Register,,Association Exemple Sud,association exemple sud,12345678900029,123456789,https://example.invalid/fr/2,csv,2026-08-04
+NL,Synthetic Foundation Register,NL-1001,Example Foundation,example foundation,NL1001,NL1001,https://example.invalid/nl/1,csv,2026-08-04
+NL,Synthetic Foundation Register,NL-1002,Example Foundation,example foundation,NL1002,NL1002,https://example.invalid/nl/2,csv,2026-08-04
+DE,Synthetic Register,DE-9001,Synthetic Inclusion Enterprise gGmbH,synthetic inclusion enterprise ggmbh,DE9001,DE9001,https://example.invalid/de/1,csv,2026-08-04
+,Synthetic Broken Register,,Missing Country Organisation,missing country organisation,,,https://example.invalid/broken/1,csv,2026-08-04

@@ -18,3 +18,12 @@ match_data/*.xlsx
 # Local audit/output material
 audit/
 be_names.txt
+
+# Generated canonical entity-layer outputs
+data/canonical/
+*.duckdb
+*.parquet
+
+# Allow committed synthetic canonical-layer test fixtures
+!tests/fixtures/canonical/source_records.csv
+!tests/fixtures/canonical/selection.csv

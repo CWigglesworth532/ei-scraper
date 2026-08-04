@@ -20,3 +20,5 @@ typing_extensions==4.15.0
 Unidecode==1.4.0
 urllib3==2.6.3
 pdfplumber
+duckdb==1.5.0
+pyarrow==25.0.0
