@@ -3,7 +3,7 @@
 **Task:** SKO-011  
 **Epic:** E1 — Canonical skopia entity layer  
 **Milestone:** E1.6  
-**Status:** Implemented and tested; awaiting owner acceptance  
+**Status:** Accepted with operational follow-ons  
 **Branch:** `e1-6-directory-candidate-export`
 
 ## Scope
@@ -210,4 +210,8 @@ It has passed:
 - full regression testing;
 - operational QA against the accepted E1.5 canonical layer.
 
-E1.6 remains **implemented and tested, awaiting owner acceptance**.
+E1.6 was **accepted with operational follow-ons** by Charlie on 4 August 2026.
+
+Accepted wording:
+
+> E1.6 is accepted with operational follow-ons. The canonical directory-candidate export has been implemented and validated, producing one CSV row per active operationally relevant entity_id, with 39 unique entities, no duplicate IDs, preserved provenance, conservative review defaults and 67 passing tests. Follow-ons remain for governed classification, directory-readiness persistence, Airtable duplicate comparison, spend/activity linkage and future synchronization.
