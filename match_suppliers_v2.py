@@ -2,6 +2,7 @@
 # match_suppliers.py
 
 import re
+from pathlib import Path
 import pandas as pd
 from unidecode import unidecode
 from rapidfuzz import process, fuzz
@@ -863,19 +864,263 @@ def match_suppliers(
             sup.at[i, "match_region"] = mst.at[m_idx, master_region_col]
 
     # -----------------------------
-    # SAVE
+    # CANDIDATE CONSOLIDATION AND SAVE
     # -----------------------------
-    print("Saving output:", out_path)
 
-    # keep name-candidate columns; drop internal norm fields
-    sup = sup.drop(columns=[c for c in ["_norm_name", "_norm_tax", "_siren"] if c in sup.columns])
+    def is_yes(series):
+        return (
+            series.fillna("")
+            .astype(str)
+            .str.strip()
+            .str.upper()
+            .eq("YES")
+        )
 
-    # De-duplicate columns (fixes repeated name_* headers if any upstream concat repeats)
+    matched_mask = (
+        sup["match_type"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .ne("")
+    )
+
+    heuristic_mask = is_yes(
+        sup.get(
+            "social_economy_name_candidate",
+            pd.Series("NO", index=sup.index),
+        )
+    )
+
+    heuristic_only_mask = heuristic_mask & ~matched_mask
+    matched_and_heuristic_mask = matched_mask & heuristic_mask
+    candidate_mask = matched_mask | heuristic_mask
+
+    # These fields make all candidate types explicit in every future run.
+    sup["candidate_flag"] = candidate_mask.map(
+        {True: "YES", False: "NO"}
+    )
+
+    sup["heuristic_only"] = heuristic_only_mask.map(
+        {True: "YES", False: "NO"}
+    )
+
+    # Create a concise, standard heuristic trigger.
+    sup["heuristic_trigger"] = ""
+
+    coop_mask = is_yes(
+        sup.get(
+            "name_coop_candidate",
+            pd.Series("NO", index=sup.index),
+        )
+    )
+
+    marker_mask = is_yes(
+        sup.get(
+            "name_marker_candidate",
+            pd.Series("NO", index=sup.index),
+        )
+    )
+
+    sup.loc[coop_mask, "heuristic_trigger"] = "coop"
+    sup.loc[marker_mask, "heuristic_trigger"] = "marker"
+    sup.loc[
+        coop_mask & marker_mask,
+        "heuristic_trigger",
+    ] = "coop | marker"
+
+    # Preserve any more detailed heuristic descriptions already generated
+    # by classify_name_candidates().
+    heuristic_detail_columns = [
+        column
+        for column in sup.columns
+        if isinstance(column, str)
+        and column.startswith("name_")
+        and any(
+            term in column.lower()
+            for term in [
+                "reason",
+                "category",
+                "type",
+                "trigger",
+            ]
+        )
+        and column not in {
+            "name_coop_candidate",
+            "name_marker_candidate",
+        }
+    ]
+
+    if heuristic_detail_columns:
+        def collect_heuristic_details(row):
+            values = []
+
+            current_trigger = str(
+                row.get("heuristic_trigger", "")
+            ).strip()
+
+            if current_trigger:
+                values.extend(
+                    item.strip()
+                    for item in current_trigger.split("|")
+                    if item.strip()
+                )
+
+            for column in heuristic_detail_columns:
+                value = row.get(column, "")
+
+                if pd.isna(value):
+                    continue
+
+                value = str(value).strip()
+
+                if (
+                    value
+                    and value.upper() not in {"NO", "YES"}
+                    and value.lower() not in {"nan", "none"}
+                ):
+                    values.append(value)
+
+            # Preserve order while removing duplicates.
+            return " | ".join(dict.fromkeys(values))
+
+        sup["heuristic_trigger"] = sup.apply(
+            collect_heuristic_details,
+            axis=1,
+        )
+
+    # Technical match type remains separate from the combined candidate basis.
+    sup["candidate_basis"] = ""
+
+    sup.loc[
+        matched_mask,
+        "candidate_basis",
+    ] = sup.loc[
+        matched_mask,
+        "match_type",
+    ].astype(str)
+
+    sup.loc[
+        heuristic_only_mask,
+        "candidate_basis",
+    ] = "heuristic_only"
+
+    sup.loc[
+        matched_and_heuristic_mask,
+        "candidate_basis",
+    ] = (
+        sup.loc[
+            matched_and_heuristic_mask,
+            "match_type",
+        ].astype(str)
+        + " + heuristic"
+    )
+
+    # High-level initial review status. This is not final classification.
+    sup["candidate_status"] = "Not identified"
+
+    sup.loc[
+        matched_mask,
+        "candidate_status",
+    ] = "Technical match – review source and classification"
+
+    sup.loc[
+        heuristic_only_mask,
+        "candidate_status",
+    ] = "Heuristic only – review required"
+
+    sup.loc[
+        matched_and_heuristic_mask,
+        "candidate_status",
+    ] = "Technical match with heuristic support"
+
+    # Regression protection: no heuristic candidate may be lost.
+    lost_heuristics = heuristic_mask & (
+        sup["candidate_flag"] != "YES"
+    )
+
+    if lost_heuristics.any():
+        raise RuntimeError(
+            f"{int(lost_heuristics.sum())} heuristic candidates "
+            "were not included in candidate_flag."
+        )
+
+    if heuristic_only_mask.any():
+        missing_basis = (
+            heuristic_only_mask
+            & sup["candidate_basis"].ne("heuristic_only")
+        )
+
+        if missing_basis.any():
+            raise RuntimeError(
+                f"{int(missing_basis.sum())} heuristic-only candidates "
+                "were not labelled correctly."
+            )
+
+    # Keep candidate fields; remove only internal matching fields.
+    sup = sup.drop(
+        columns=[
+            column
+            for column in [
+                "_norm_name",
+                "_norm_tax",
+                "_siren",
+            ]
+            if column in sup.columns
+        ]
+    )
+
+    # De-duplicate columns if an upstream concat repeated any names.
     sup = sup.loc[:, ~sup.columns.duplicated()]
 
-    sup.to_csv(out_path, index=False)
-    print("Done.")
+    out_path_obj = Path(out_path)
+    out_path_obj.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
+    candidate_out_path = out_path_obj.with_name(
+        f"{out_path_obj.stem}_candidates"
+        f"{out_path_obj.suffix}"
+    )
+
+    print("Saving output:", out_path_obj)
+    sup.to_csv(
+        out_path_obj,
+        index=False,
+    )
+
+    # Always create a separate file containing every technical match
+    # and every heuristic-only candidate.
+    candidate_output = sup.loc[
+        sup["candidate_flag"] == "YES"
+    ].copy()
+
+    candidate_output.to_csv(
+        candidate_out_path,
+        index=False,
+    )
+
+    print("\nCandidate summary:")
+    print(f"  Input rows: {len(sup):,}")
+    print(f"  Technical matches: {int(matched_mask.sum()):,}")
+    print(
+        "  Heuristic-only candidates: "
+        f"{int(heuristic_only_mask.sum()):,}"
+    )
+    print(
+        "  Matched rows with heuristic support: "
+        f"{int(matched_and_heuristic_mask.sum()):,}"
+    )
+    print(
+        "  Total distinct candidates: "
+        f"{int(candidate_mask.sum()):,}"
+    )
+    print(
+        "  Unflagged rows: "
+        f"{int((~candidate_mask).sum()):,}"
+    )
+    print(f"  Candidate file: {candidate_out_path}")
+    print("Done.")
 
 # -----------------------------
 # COMMAND LINE ENTRY POINT
