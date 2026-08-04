@@ -568,10 +568,24 @@ def match_suppliers(
     # Trusted entities (replaces hard-coded SOCIAL_BRANDS)
     # -----------------------------
     if trusted_entities_path:
-        trusted_brands = _load_trusted_brands_from_csv(trusted_entities_path)
-        print(f"Loaded {len(trusted_brands)} trusted brands from:", trusted_entities_path)
+        legacy_trusted_brands = _load_trusted_brands_from_csv(
+            trusted_entities_path
+        )
+        print(
+            f"Loaded {len(legacy_trusted_brands)} trusted brands from:",
+            trusted_entities_path,
+        )
     else:
-        trusted_brands = list(SOCIAL_BRANDS)
+        legacy_trusted_brands = list(SOCIAL_BRANDS)
+
+    # Preserve the legacy trusted-name route separately from canonical
+    # safe-list terms. Canonical terms must continue to use the governed,
+    # country-aware resolver and must not fall back to unrestricted brand
+    # matching.
+    legacy_trusted_brand_regexes = _compile_brand_regexes(
+        legacy_trusted_brands
+    )
+    trusted_brands = list(legacy_trusted_brands)
     canonical_safe_resolver = None
 
     if canonical_safe_list_path:
@@ -726,6 +740,50 @@ def match_suppliers(
             sup.at[i, "canonical_safe_term_type"] = (
                 safe_match.term_type
             )
+
+    # -----------------------------
+    # 0b) LEGACY TRUSTED-BRAND MATCHING
+    # -----------------------------
+    # This route preserves the historical --trusted-entities behaviour.
+    # It deliberately does not assign canonical IDs because legacy roster
+    # rows are not governed entity-linked terms.
+    if legacy_trusted_brands:
+        print("Running legacy trusted-brand matching...")
+
+        for i in sup.index:
+            if sup.at[i, "social_enterprise_supplier"] == "YES":
+                continue
+
+            raw_name = str(
+                sup.at[i, "_supplier_raw_name"] or ""
+            )
+            raw_name_lower = raw_name.lower()
+
+            matched_legacy_brand = next(
+                (
+                    brand
+                    for brand, regex in zip(
+                        legacy_trusted_brands,
+                        legacy_trusted_brand_regexes,
+                    )
+                    if regex.search(raw_name_lower)
+                ),
+                "",
+            )
+
+            if not matched_legacy_brand:
+                continue
+
+            sup.at[i, "social_enterprise_supplier"] = "YES"
+            sup.at[i, "matched_entity_name"] = (
+                matched_legacy_brand
+            )
+            sup.at[i, "match_type"] = "known_social_brand"
+            sup.at[i, "match_score"] = 100
+            sup.at[i, "match_country"] = sup.at[
+                i,
+                "supplier_country",
+            ]
 
     # -----------------------------
     # 1) TAX ID MATCHING
