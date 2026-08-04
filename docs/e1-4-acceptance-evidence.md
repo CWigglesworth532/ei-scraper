@@ -176,11 +176,16 @@ The following remain operational follow-on work:
 
 ## Acceptance decision
 
-Status: Awaiting Charlie review and acceptance.
+Status: Accepted with operational follow-ons.
 
-Do not mark E1.4 accepted until:
+Accepted by: Charlie  
+Accepted on: 2026-08-04
 
-1. this evidence document is reviewed;
-2. the final test suite passes on the committed branch;
-3. the branch diff is inspected;
-4. Charlie explicitly accepts the implementation.
+The implementation and synthetic behavioural evidence are accepted.
+
+The following remain open as operational follow-on work:
+
+1. review and migrate the live legacy trusted roster;
+2. run the workflow against a real accepted client-review file;
+3. document the operational run sequence;
+4. review historical directory entries as aliases, brands or separate entities.
