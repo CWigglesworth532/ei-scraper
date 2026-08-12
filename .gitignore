@@ -30,3 +30,6 @@ data/canonical/
 
 # Allow committed synthetic SKO-022 directory-integration fixtures
 !tests/fixtures/directory/*.csv
+
+# Allow committed synthetic SKO-023 production-shaped fixtures
+!tests/fixtures/directory_production_shaped/*.csv

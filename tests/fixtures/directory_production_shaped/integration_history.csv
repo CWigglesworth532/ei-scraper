@@ -1,0 +1,11 @@
+history_id,entity_id,airtable_record_id,prior_integration_values,editorial_fingerprint,transition_reason,evidence_reference
+history_245,prod_ent_245,prod_rec_245_group,"{""crosswalk_status"":""approved""}",fp_245_group,synthetic retirement,synthetic_retirement_evidence_245
+history_246,prod_ent_246,prod_rec_246_group,"{""crosswalk_status"":""approved""}",fp_246_group,synthetic retirement,synthetic_retirement_evidence_246
+history_247,prod_ent_247,prod_rec_247_group,"{""crosswalk_status"":""approved""}",fp_247_group,synthetic retirement,synthetic_retirement_evidence_247
+history_248,prod_ent_248,prod_rec_248_group,"{""crosswalk_status"":""approved""}",fp_248_group,synthetic retirement,synthetic_retirement_evidence_248
+history_249,prod_ent_249,prod_rec_249_group,"{""crosswalk_status"":""approved""}",fp_249_group,synthetic retirement,synthetic_retirement_evidence_249
+history_250,prod_ent_250,prod_rec_250_group,"{""crosswalk_status"":""approved""}",fp_250_group,synthetic retirement,synthetic_retirement_evidence_250
+history_251,prod_ent_251,prod_rec_251_group,"{""crosswalk_status"":""approved""}",fp_251_group,synthetic retirement,synthetic_retirement_evidence_251
+history_252,prod_ent_252,prod_rec_252_group,"{""crosswalk_status"":""approved""}",fp_252_group,synthetic retirement,synthetic_retirement_evidence_252
+history_253,prod_ent_253,prod_rec_253_group,"{""crosswalk_status"":""approved""}",fp_253_group,synthetic retirement,synthetic_retirement_evidence_253
+history_254,prod_ent_254,prod_rec_254_group,"{""crosswalk_status"":""approved""}",fp_254_group,synthetic retirement,synthetic_retirement_evidence_254
