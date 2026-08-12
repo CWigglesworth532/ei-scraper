@@ -1,0 +1,25 @@
+mode: handoff_only
+network_enabled: false
+credentials_enabled: false
+mutation_enabled: false
+application_enabled: false
+relationship_types: [group, division, service_line]
+config_version: sko-024-v1
+lifecycle_states: [PROPOSAL, CANDIDATE_BATCH, REVIEWABLE_BATCH, APPROVED_BATCH, HANDOFF_READY]
+allowed_proposal_fields:
+  - entity_id
+  - profile_relationship_type
+  - counting_entity_id
+  - crosswalk_status
+  - skopia_readiness_status
+  - skopia_readiness_assessed_at
+  - skopia_readiness_reference
+  - integration_batch_id
+approval:
+  explicit_record_required: true
+  matching_batch_content_hash_required: true
+future_adapter_contract:
+  require_current_fingerprint: true
+  require_before_state: true
+  require_application_outcome: true
+  require_rollback_approval: true
