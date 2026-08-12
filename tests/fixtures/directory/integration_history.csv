@@ -1,0 +1,3 @@
+history_id,entity_id,airtable_record_id,prior_integration_values,editorial_fingerprint,transition_reason,evidence_reference
+hist_rollback,ent_rollback,rec_rollback,"{""crosswalk_status"":""approved"",""skopia_readiness_status"":""not_ready""}",fp_rollback_original,synthetic rollback,evidence_rollback
+hist_retired,ent_retired,rec_retired,"{""crosswalk_status"":""approved"",""skopia_readiness_status"":""ready""}",fp_retired,synthetic retirement,evidence_retired

@@ -1,0 +1,18 @@
+entity_id,canonical_name,entity_status,counting_entity_id,redirect_to,split_status
+ent_new,Synthetic New Works,active,ent_new,,
+ent_reuse,Synthetic Reuse Group,active,ent_reuse,,
+ent_similar,Synthetic Similar Services,active,ent_similar,,
+ent_multi,Synthetic Multi Group,active,ent_multi,,
+ent_conflict_a,Synthetic Conflict Alpha,active,ent_conflict_a,,
+ent_conflict_b,Synthetic Conflict Beta,active,ent_conflict_b,,
+ent_incomplete,Synthetic Incomplete,active,ent_incomplete,,
+ent_ineligible,Synthetic Ineligible,active,ent_ineligible,,
+ent_ready,Synthetic Ready Not Published,active,ent_ready,,
+ent_feedback,Synthetic Feedback,active,ent_feedback,,
+ent_merge_old,Synthetic Merge Legacy,merged,ent_merge_survivor,ent_merge_survivor,
+ent_merge_survivor,Synthetic Merge Survivor,active,ent_merge_survivor,,
+ent_split,Synthetic Split Parent,split_pending,ent_split,,pending_reassignment
+ent_stale,Synthetic Stale Profile,active,ent_stale,,
+ent_rollback,Synthetic Rollback Profile,active,ent_rollback,,
+ent_count,Synthetic Counting Group,active,ent_count,,
+ent_retired,Synthetic Retired Profile,active,ent_retired,,

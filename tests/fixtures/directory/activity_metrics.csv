@@ -1,0 +1,3 @@
+activity_id,entity_id,supplier_count,spend_eur,impact_count
+act_count_group,ent_count,1,1000,2
+act_count_division,ent_count,1,1000,2

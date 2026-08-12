@@ -1,0 +1,17 @@
+entity_id,classification_status,evidence_reference
+ent_new,eligible,class_new
+ent_reuse,eligible,class_reuse
+ent_similar,eligible,class_similar
+ent_multi,eligible,class_multi
+ent_conflict_a,eligible,class_conflict_a
+ent_conflict_b,eligible,class_conflict_b
+ent_incomplete,eligible,class_incomplete
+ent_ineligible,ineligible,class_ineligible
+ent_ready,eligible,class_ready
+ent_feedback,eligible,class_feedback
+ent_merge_survivor,eligible,class_merge
+ent_split,eligible,class_split
+ent_stale,eligible,class_stale
+ent_rollback,eligible,class_rollback
+ent_count,eligible,class_count
+ent_retired,eligible,class_retired

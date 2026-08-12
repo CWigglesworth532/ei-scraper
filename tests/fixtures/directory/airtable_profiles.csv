@@ -1,0 +1,18 @@
+airtable_record_id,Organisation,publication_status,profile_status,record_fingerprint
+rec_multi_group,Synthetic Multi Group,unpublished,active,fp_multi_group
+rec_multi_division,Synthetic Multi Division,unpublished,active,fp_multi_division
+rec_multi_service,Synthetic Multi Service Line,unpublished,active,fp_multi_service
+rec_reuse,Synthetic Reuse Group,published,active,fp_reuse
+rec_similar,Synthetic Similar Service,unpublished,active,fp_similar
+rec_conflict,Synthetic Conflict Record,unpublished,active,fp_conflict
+rec_incomplete,Synthetic Incomplete,unpublished,active,fp_incomplete
+rec_ineligible,Synthetic Ineligible,published,active,fp_ineligible
+rec_ready,Synthetic Ready Not Published,unpublished,active,fp_ready
+rec_feedback,Synthetic Feedback,published,active,fp_feedback
+rec_merge,Synthetic Merge Legacy,unpublished,active,fp_merge
+rec_split,Synthetic Split Parent,unpublished,active,fp_split
+rec_stale,Synthetic Stale Profile,unpublished,active,fp_stale_changed
+rec_rollback,Synthetic Editorial Name Later,published,active,fp_rollback_later
+rec_count_group,Synthetic Counting Group,unpublished,active,fp_count_group
+rec_count_division,Synthetic Counting Division,unpublished,active,fp_count_division
+rec_retired,Synthetic Retired Profile,retired,retired,fp_retired

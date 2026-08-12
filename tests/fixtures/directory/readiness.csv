@@ -1,0 +1,17 @@
+entity_id,enrichment_complete,readiness_status,assessed_at,evidence_reference
+ent_new,true,ready,2026-08-05T09:00:00Z,ready_new
+ent_reuse,true,ready,2026-08-05T09:00:00Z,ready_reuse
+ent_similar,true,ready,2026-08-05T09:00:00Z,ready_similar
+ent_multi,true,ready,2026-08-05T09:00:00Z,ready_multi
+ent_conflict_a,true,ready,2026-08-05T09:00:00Z,ready_conflict_a
+ent_conflict_b,true,ready,2026-08-05T09:00:00Z,ready_conflict_b
+ent_incomplete,false,ready,2026-08-05T09:00:00Z,ready_incomplete
+ent_ineligible,true,ready,2026-08-05T09:00:00Z,ready_ineligible
+ent_ready,true,ready,2026-08-05T09:00:00Z,ready_not_published
+ent_feedback,true,ready,2026-08-05T09:00:00Z,ready_feedback
+ent_merge_survivor,true,ready,2026-08-05T09:00:00Z,ready_merge
+ent_split,true,ready,2026-08-05T09:00:00Z,ready_split
+ent_stale,true,ready,2026-08-05T09:00:00Z,ready_stale
+ent_rollback,true,ready,2026-08-05T09:00:00Z,ready_rollback
+ent_count,true,ready,2026-08-05T09:00:00Z,ready_count
+ent_retired,true,ready,2026-08-05T09:00:00Z,ready_retired

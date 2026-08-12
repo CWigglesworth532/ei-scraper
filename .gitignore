@@ -27,3 +27,6 @@ data/canonical/
 # Allow committed synthetic canonical-layer test fixtures
 !tests/fixtures/canonical/source_records.csv
 !tests/fixtures/canonical/selection.csv
+
+# Allow committed synthetic SKO-022 directory-integration fixtures
+!tests/fixtures/directory/*.csv

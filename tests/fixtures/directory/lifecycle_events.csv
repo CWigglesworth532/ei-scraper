@@ -1,0 +1,4 @@
+event_id,event_type,entity_id,target_entity_id,reason,evidence_reference
+evt_merge,canonical_merge,ent_merge_old,ent_merge_survivor,approved synthetic merge,evidence_merge
+evt_split,canonical_split,ent_split,,synthetic split pending reassignment,evidence_split
+evt_retire,profile_retired,ent_retired,,synthetic profile retirement,evidence_retired

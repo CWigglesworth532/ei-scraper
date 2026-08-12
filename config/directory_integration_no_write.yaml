@@ -1,0 +1,28 @@
+mode: proposal_only
+network_enabled: false
+credentials_enabled: false
+mutation_enabled: false
+output_directory: data/outputs/directory
+allowed_proposal_fields:
+  - entity_id
+  - profile_relationship_type
+  - counting_entity_id
+  - crosswalk_status
+  - skopia_readiness_status
+  - skopia_readiness_assessed_at
+  - skopia_readiness_reference
+  - integration_batch_id
+protected_fields:
+  - Organisation
+  - Website
+  - Business Summary
+  - Sector
+  - Social Mission
+  - Countries Served
+  - Corporate Clients
+  - Client Evidence Notes
+  - publication_status
+eligible_classifications: [eligible]
+ready_statuses: [ready]
+active_profile_statuses: [active]
+relationship_types: [group, division, service_line]
