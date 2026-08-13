@@ -1,0 +1,28 @@
+fingerprint_version: airtable-profile-fingerprint-v1
+crosswalk_schema_version: sko-025a-crosswalk-v1
+projection: [Organisation, Country, Website hostname]
+relationship_types: [group, division, service_line, brand, establishment, operating_unit]
+country_mapping:
+  austria: AT
+  belgium: BE
+  france: FR
+  germany: DE
+  ireland: IE
+  italy: IT
+  netherlands: NL
+  portugal: PT
+  spain: ES
+  sweden: SE
+  united kingdom: GB
+  uk: GB
+  gb: GB
+  at: AT
+  be: BE
+  de: DE
+  es: ES
+  fr: FR
+  ie: IE
+  it: IT
+  nl: NL
+  pt: PT
+  se: SE

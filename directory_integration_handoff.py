@@ -111,7 +111,7 @@ def build_candidate_batch(
         raise HandoffGateViolation("Creation metadata requires an actor and ISO-8601 timestamp")
     relationships = set((config or {}).get("relationship_types", ["group", "division", "service_line"]))
     config_version = _clean((config or {}).get("config_version", config_version))
-    proposal_rows = _records(proposals)
+    proposal_rows = sorted(_records(proposals), key=_canonical)
     references = _records(integration_references)
     decision_rows = _records(decisions)
     profiles = _records(airtable_profiles)
@@ -124,9 +124,20 @@ def build_candidate_batch(
     profile_index, duplicate_profiles = _unique_index(profiles, ("airtable_record_id",))
     crosswalk_index, duplicate_crosswalks = _unique_index(
         [row for row in crosswalk_rows if _clean(row.get("crosswalk_status")) == "approved"],
-        ("entity_id", "profile_relationship_type"),
+        ("airtable_record_id",),
     )
     entity_index, duplicate_entities = _unique_index(entity_rows, ("entity_id",))
+    binding_queues: dict[tuple[str, str], list[tuple[dict[str, Any], dict[str, Any]]]] = {}
+    for reference in references:
+        record_id = _clean(reference.get("airtable_record_id"))
+        crosswalk = crosswalk_index.get((record_id,), {})
+        entity_id = _clean(reference.get("entity_id"))
+        relationship = _clean(crosswalk.get("profile_relationship_type"))
+        if crosswalk and _clean(crosswalk.get("entity_id")) == entity_id:
+            binding_queues.setdefault((entity_id, relationship), []).append((reference, crosswalk))
+    for queue in binding_queues.values():
+        queue.sort(key=lambda pair: (_clean(pair[0].get("airtable_record_id")), _canonical(pair[0])))
+    binding_offsets: dict[tuple[str, str], int] = {}
 
     items: list[dict[str, Any]] = []
     violations: list[str] = []
@@ -139,7 +150,10 @@ def build_candidate_batch(
         entity_id = _clean(proposal.get("entity_id"))
         relationship = _clean(proposal.get("profile_relationship_type"))
         cross_key = (entity_id, relationship)
-        crosswalk = crosswalk_index.get(cross_key, {})
+        queue = binding_queues.get(cross_key, [])
+        offset = binding_offsets.get(cross_key, 0)
+        reference, crosswalk = (queue[offset] if offset < len(queue) else (queue[0] if len(queue) == 1 else ({}, {})))
+        binding_offsets[cross_key] = offset + 1
         record_id = _clean(crosswalk.get("airtable_record_id"))
         candidates = [r for r in refs_by_entity.get(entity_id, []) if _clean(r.get("airtable_record_id")) == record_id]
         reference = candidates[0] if len(candidates) == 1 else {}
@@ -157,7 +171,7 @@ def build_candidate_batch(
         proposed_counting = _clean(proposal.get("counting_entity_id"))
         gate = {
             "record_id_present": bool(record_id),
-            "crosswalk_key_unique": cross_key not in duplicate_crosswalks,
+            "crosswalk_key_unique": bool(record_id) and (record_id,) not in duplicate_crosswalks,
             "profile_record_id_unique": (record_id,) not in duplicate_profiles,
             "reference_unique": len(candidates) == 1,
             "decision_unique": (candidate_id,) not in duplicate_decisions,

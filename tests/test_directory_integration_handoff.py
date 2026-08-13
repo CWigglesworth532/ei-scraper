@@ -132,7 +132,7 @@ class HandoffTests(unittest.TestCase):
   self.assertTrue(actual["operations"][0]["application_time_state_supplied"]); self.assertEqual(set(actual["operations"][0]["application_time_before_values"]),set(engine.PROPOSAL_FIELDS))
 
  def test_config_and_batch_validation(self):
-  self.assertEqual(set(self.config["relationship_types"]),{"group","division","service_line"})
+  self.assertEqual(set(self.config["relationship_types"]),{"group","division","service_line","brand","establishment","operating_unit"})
   schema=json.loads((ROOT/"schemas"/"directory_integration_batch_manifest.schema.json").read_text())
   self.assertFalse(schema["additionalProperties"]); self.assertTrue(set(self.single()["manifest"]) <= set(schema["properties"]))
   with self.assertRaises(gate.HandoffGateViolation): gate.build_candidate_batch([],[],[],[],[],[],batch_id="",created_at="2026-08-12T12:00:00Z",created_by="operator",config=self.config)

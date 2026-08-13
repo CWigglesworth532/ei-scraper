@@ -25,4 +25,4 @@ protected_fields:
 eligible_classifications: [eligible]
 ready_statuses: [ready]
 active_profile_statuses: [active]
-relationship_types: [group, division, service_line]
+relationship_types: [group, division, service_line, brand, establishment, operating_unit]
