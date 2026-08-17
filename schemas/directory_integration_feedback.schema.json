@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skopia.example/schemas/directory_integration_feedback.schema.json",
+  "title": "SKO-026 governed directory review feedback row",
+  "type": "object",
+  "required": ["schema_version", "feedback_id", "feedback_batch_id", "target_type", "target_id", "decision", "reviewer", "decision_at", "reason", "source_review_file", "source_review_file_hash"],
+  "properties": {
+    "schema_version": {"const": "sko-026-directory-feedback-v1"},
+    "feedback_id": {"type": "string", "pattern": "^fb_[A-Za-z0-9._-]+$"},
+    "feedback_batch_id": {"type": "string", "minLength": 1},
+    "target_type": {"enum": ["crosswalk", "relationship", "counting_mapping", "readiness", "new_profile_candidate"]},
+    "target_id": {"type": "string", "minLength": 1},
+    "decision": {"enum": ["approve", "reject", "hold", "revoke", "directory_ready", "not_ready", "research_needed", "excluded", "needs_update", "approve_future_creation"]},
+    "reviewer": {"type": "string", "minLength": 1},
+    "decision_at": {"type": "string", "format": "date-time"},
+    "reason": {"type": "string"},
+    "source_review_file": {"type": "string"},
+    "source_review_file_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "related_batch_id": {"type": ["string", "null"]},
+    "related_proposal_id": {"type": ["string", "null"]},
+    "crosswalk_id": {"type": ["string", "null"]},
+    "airtable_record_id": {"type": ["string", "null"], "pattern": "^(rec[A-Za-z0-9]+)?$"},
+    "entity_id": {"type": ["string", "null"]},
+    "relationship_type": {"type": ["string", "null"], "enum": [null, "", "group", "division", "service_line", "brand", "establishment", "operating_unit"]},
+    "counting_entity_id": {"type": ["string", "null"]},
+    "fingerprint_version": {"type": ["string", "null"]},
+    "prior_state_hash": {"type": ["string", "null"], "pattern": "^([0-9a-f]{64})?$"},
+    "supersedes_feedback_id": {"type": ["string", "null"]}
+  },
+  "additionalProperties": false
+}
