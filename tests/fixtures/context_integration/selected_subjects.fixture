@@ -1,0 +1,12 @@
+selected,subject_type,subject_id,entity_id
+true,canonical_entity,canonical-01,entity-01
+true,canonical_entity,canonical-02,entity-02
+true,supplier_observation,supplier-03,
+true,canonical_entity,canonical-04,entity-04
+true,supplier_observation,supplier-05,entity-context-05
+true,canonical_entity,canonical-06,entity-06
+true,supplier_observation,supplier-07,entity-context-07
+true,canonical_entity,canonical-08,entity-08
+true,canonical_entity,canonical-09,entity-09
+true,supplier_observation,supplier-10,entity-context-10
+false,supplier_observation,not-selected,entity-x

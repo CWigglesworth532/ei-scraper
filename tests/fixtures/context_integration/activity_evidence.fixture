@@ -1,0 +1,12 @@
+activity_evidence_id,subject_type,subject_id,entity_id,evidence_authority,evidence_status
+actev_000000000000000000000001,canonical_entity,canonical-01,entity-01,strong,usable
+actev_000000000000000000000002,supplier_observation,supplier-03,,authoritative,usable
+actev_000000000000000000000003,supplier_observation,supplier-05,entity-context-05,strong,usable
+actev_000000000000000000000004,canonical_entity,canonical-06,entity-06,contextual,review_required
+actev_000000000000000000000005,canonical_entity,canonical-06,entity-06,weak,review_required
+actev_000000000000000000000006,supplier_observation,supplier-07,entity-context-07,supporting,ambiguous
+actev_000000000000000000000007,supplier_observation,supplier-07,entity-context-07,supporting,ambiguous
+actev_000000000000000000000008,canonical_entity,canonical-08,entity-08,authoritative,usable
+actev_000000000000000000000009,canonical_entity,canonical-08,entity-08,strong,usable
+actev_00000000000000000000000a,canonical_entity,canonical-08,entity-08,supporting,usable
+actev_00000000000000000000000b,supplier_observation,supplier-10,entity-context-10,contextual,review_required

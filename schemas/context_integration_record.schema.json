@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skopia.example/schemas/context_integration_record.schema.json",
+  "title": "SKO-030 contextual integration record",
+  "type": "object",
+  "required": ["context_integration_id", "record_type", "subject_type", "subject_id", "entity_id", "classification_id", "geography_scheme", "geography_version", "geography_level", "geography_code", "geography_name", "mapping_status", "observation_id", "indicator_id", "indicator_name", "indicator_theme", "period", "period_type", "value", "unit", "value_status", "activity_evidence_count", "activity_evidence_ids", "activity_authority_counts", "activity_status_counts", "activity_has_authoritative_or_strong", "activity_review_required_count", "activity_ambiguous_count", "missingness_reason", "integration_version", "integrated_at", "record_fingerprint"],
+  "properties": {
+    "context_integration_id": {"type": "string", "pattern": "^ctx_[0-9a-f]{24}$"},
+    "record_type": {"enum": ["enriched", "staging"]},
+    "subject_type": {"enum": ["canonical_entity", "supplier_observation"]},
+    "subject_id": {"type": "string", "minLength": 1},
+    "entity_id": {"type": "string"},
+    "classification_id": {"type": "string", "pattern": "^geo_[0-9a-f]{24}$"},
+    "geography_scheme": {"enum": ["", "NUTS", "ITL"]},
+    "geography_version": {"type": "string"},
+    "geography_level": {"enum": ["", "1", "2", "3"]},
+    "geography_code": {"type": "string"},
+    "geography_name": {"type": "string"},
+    "mapping_status": {"enum": ["resolved", "ambiguous", "insufficient_evidence", "unsupported_country"]},
+    "observation_id": {"type": "string", "pattern": "^(|obs_[0-9a-f]{24})$"},
+    "indicator_id": {"type": "string"}, "indicator_name": {"type": "string"},
+    "indicator_theme": {"enum": ["", "socioeconomic", "environmental"]},
+    "period": {"type": "string"}, "period_type": {"type": "string"},
+    "value": {"type": "string"}, "unit": {"type": "string"}, "value_status": {"type": "string"},
+    "activity_evidence_count": {"type": "string", "pattern": "^[0-9]+$"},
+    "activity_evidence_ids": {"type": "string", "pattern": "^\\[.*\\]$"},
+    "activity_authority_counts": {"type": "string", "pattern": "^\\{.*\\}$"},
+    "activity_status_counts": {"type": "string", "pattern": "^\\{.*\\}$"},
+    "activity_has_authoritative_or_strong": {"enum": ["true", "false"]},
+    "activity_review_required_count": {"type": "string", "pattern": "^[0-9]+$"},
+    "activity_ambiguous_count": {"type": "string", "pattern": "^[0-9]+$"},
+    "missingness_reason": {"enum": ["", "unresolved_geography", "no_compatible_indicator"]},
+    "integration_version": {"const": "sko-030-context-integration-v1"},
+    "integrated_at": {"type": "string", "format": "date-time"},
+    "record_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "allOf": [
+    {"if": {"properties": {"subject_type": {"const": "canonical_entity"}}}, "then": {"properties": {"entity_id": {"minLength": 1}}}},
+    {"if": {"properties": {"record_type": {"const": "enriched"}}}, "then": {"properties": {"observation_id": {"pattern": "^obs_[0-9a-f]{24}$"}, "missingness_reason": {"const": ""}}}},
+    {"if": {"properties": {"record_type": {"const": "staging"}}}, "then": {"properties": {"observation_id": {"const": ""}, "missingness_reason": {"enum": ["unresolved_geography", "no_compatible_indicator"]}}}}
+  ],
+  "additionalProperties": false
+}

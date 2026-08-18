@@ -1,0 +1,13 @@
+observation_id,indicator_id,indicator_name,indicator_theme,geography_scheme,geography_version,geography_level,geography_code,period,period_type,value,unit,value_status
+obs_000000000000000000000001,regional_gdp,Regional GDP,socioeconomic,NUTS,2024,3,DE111,2024,annual,61000,million_eur,final
+obs_000000000000000000000002,regional_gdp,Regional GDP,socioeconomic,NUTS,2024,3,DE111,2025,annual,62500,million_eur,provisional
+obs_000000000000000000000003,regional_ghg_emissions,Regional GHG emissions,environmental,NUTS,2024,3,DE111,2024,annual,4300,kt_co2e,final
+obs_000000000000000000000004,regional_ghg_emissions,Regional GHG emissions,environmental,NUTS,2024,3,DE111,2025,annual,4200,kt_co2e,estimated
+obs_000000000000000000000005,regional_gva,Regional GVA,socioeconomic,ITL,2021,2,TLI,2023,annual,520000,million_gbp,final
+obs_000000000000000000000006,regional_gva,Regional GVA,socioeconomic,ITL,2021,2,TLI,2024,annual,540000,million_gbp,provisional
+obs_000000000000000000000007,regional_unemployment_rate,Regional unemployment rate,socioeconomic,NUTS,2024,2,ES51,2024,annual,8.2,percent_labour_force,final
+obs_000000000000000000000008,regional_gdp,Regional GDP,socioeconomic,NUTS,2024,2,BE10,2024,annual,98000,million_eur,final
+obs_000000000000000000000009,regional_unemployment_rate,Regional unemployment rate,socioeconomic,NUTS,2024,2,NL32,2024,annual,3.4,percent_labour_force,final
+obs_00000000000000000000000a,regional_gdp,Regional GDP,socioeconomic,NUTS,2024,2,SE11,2024,annual,170000,million_eur,final
+obs_00000000000000000000000b,regional_ghg_emissions,Regional GHG emissions,environmental,NUTS,2024,2,SE11,2024,annual,7900,kt_co2e,estimated
+obs_00000000000000000000000c,regional_gdp,Regional GDP,socioeconomic,NUTS,2024,2,DE11,2024,annual,250000,million_eur,final

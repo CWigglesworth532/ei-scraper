@@ -1,0 +1,12 @@
+classification_id,subject_type,subject_id,entity_id,geography_scheme,geography_version,geography_level,geography_code,geography_name,mapping_status
+geo_000000000000000000000001,canonical_entity,canonical-01,entity-01,NUTS,2024,3,DE111,Stuttgart Stadtkreis,resolved
+geo_000000000000000000000002,canonical_entity,canonical-02,entity-02,ITL,2021,2,TLI,London,resolved
+geo_000000000000000000000003,supplier_observation,supplier-03,,NUTS,2024,2,ES51,Cataluna,resolved
+geo_000000000000000000000004,canonical_entity,canonical-04,entity-04,NUTS,2024,2,FR10,Ile-de-France,resolved
+geo_000000000000000000000005,supplier_observation,supplier-05,entity-context-05,,,,,,insufficient_evidence
+geo_000000000000000000000006,canonical_entity,canonical-06,entity-06,NUTS,2024,2,BE10,Region de Bruxelles-Capitale,resolved
+geo_000000000000000000000007,supplier_observation,supplier-07,entity-context-07,NUTS,2024,2,NL32,Noord-Holland,resolved
+geo_000000000000000000000008,canonical_entity,canonical-08,entity-08,NUTS,2024,2,SE11,Stockholm,resolved
+geo_000000000000000000000009,canonical_entity,canonical-09,entity-09,NUTS,2021,2,DE11,Stuttgart,resolved
+geo_00000000000000000000000a,supplier_observation,supplier-10,entity-context-10,,,,,,ambiguous
+geo_00000000000000000000000b,canonical_entity,not-selected,entity-x,NUTS,2024,2,FR10,Ile-de-France,resolved

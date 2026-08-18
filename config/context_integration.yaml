@@ -1,0 +1,9 @@
+integration_version: sko-030-context-integration-v1
+selected_values: ["1", "true", "yes", "selected"]
+allowed_subject_types: [canonical_entity, supplier_observation]
+subject_join_fields: [subject_type, subject_id]
+geography_join_fields: [geography_scheme, geography_version, geography_level, geography_code]
+resolved_mapping_status: resolved
+strong_activity_authorities: [authoritative, strong]
+weak_only_activity_authorities: [contextual, weak]
+review_activity_statuses: [review_required, ambiguous]
