@@ -1,0 +1,7 @@
+subject_type,subject_id,record_id,CNAE,CNAE_version,ACTIVIDAD,CCAE,CCAE_version,Descripcio_CCAE,principal,official_activity_description,official_company_description
+canonical_entity,ce-official,OFF-001,01.20,2009,Cultivo de frutas,,,,principal,,Producer and packer of synthetic fruit
+supplier_observation,obs-unresolved,OFF-002,,,, 07.10,,Synthetic mining activity,unknown,,
+supplier_observation,obs-description,OFF-003,,,,,,,false,Synthetic repair and reuse services,
+canonical_entity,ce-conflict,OFF-004,10.10,2009,Synthetic food manufacture,,,,principal,,
+canonical_entity,ce-conflict,OFF-004,20.20,2009,Synthetic chemical manufacture,,,,principal,,
+canonical_entity,ce-unselected,OFF-005,99.99,2009,Must not be captured,,,,principal,,

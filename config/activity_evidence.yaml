@@ -1,0 +1,54 @@
+schema_version: sko-029-activity-evidence-v1
+capture_method: configured_local_activity_evidence
+selected_values: ["1", "true", "yes", "selected"]
+allowed_subject_types: [canonical_entity, supplier_observation]
+allowed_evidence_types:
+  - official_activity_code
+  - official_activity_description
+  - official_company_description
+  - procurement_category
+  - directory_sector
+  - directory_business_summary
+  - other_activity_text
+permitted_schemes: ["", CNAE, CCAE, NACE, other]
+principal_values:
+  "true": ["1", "true", "yes", principal]
+  "false": ["0", "false", "no", secondary]
+  unknown: ["", unknown, unresolved]
+authority_status:
+  official_activity_code: {authority: authoritative, status: usable}
+  official_activity_description: {authority: authoritative, status: usable}
+  official_company_description: {authority: strong, status: usable}
+  procurement_category: {authority: contextual, status: review_required}
+  directory_sector: {authority: contextual, status: usable}
+  directory_business_summary: {authority: weak, status: review_required}
+  other_activity_text: {authority: weak, status: review_required}
+sources:
+  synthetic_official_register:
+    file_name: official_activity_records.csv
+    source_name: Synthetic Official Register
+    source_version: synthetic-register-2026-v1
+    source_reference: synthetic://official-register/activity
+    record_id_field: record_id
+    evidence_items:
+      - {evidence_type: official_activity_code, code_field: CNAE, description_field: ACTIVIDAD, scheme: CNAE, version_field: CNAE_version, principal_field: principal, unresolved_version_status: review_required}
+      - {evidence_type: official_activity_code, code_field: CCAE, description_field: Descripcio_CCAE, scheme: CCAE, version_field: CCAE_version, principal_field: principal, unresolved_version_status: review_required}
+      - {evidence_type: official_activity_description, description_field: official_activity_description, scheme: "", principal_field: principal}
+      - {evidence_type: official_company_description, description_field: official_company_description, scheme: ""}
+  synthetic_directory:
+    file_name: directory_activity_records.csv
+    source_name: Synthetic Directory
+    source_version: synthetic-directory-2026-v1
+    source_reference: synthetic://directory/activity
+    record_id_field: record_id
+    evidence_items:
+      - {evidence_type: directory_sector, description_field: Sector, scheme: ""}
+      - {evidence_type: directory_business_summary, description_field: Business_Summary, scheme: ""}
+  synthetic_procurement:
+    file_name: procurement_activity_records.csv
+    source_name: Synthetic Procurement Observation
+    source_version: synthetic-procurement-2026-v1
+    source_reference: synthetic://procurement/category
+    record_id_field: record_id
+    evidence_items:
+      - {evidence_type: procurement_category, description_field: procurement_category, scheme: ""}

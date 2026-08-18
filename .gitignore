@@ -39,3 +39,6 @@ data/canonical/
 
 # Allow committed synthetic SKO-028 external-indicator fixtures
 !tests/fixtures/external_indicators/*.csv
+
+# Allow committed synthetic SKO-029 activity-evidence fixtures
+!tests/fixtures/activity_evidence/*.csv

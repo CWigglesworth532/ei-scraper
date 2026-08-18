@@ -1,0 +1,9 @@
+selected,subject_type,subject_id,entity_id
+yes,canonical_entity,ce-official,entity-001
+yes,supplier_observation,obs-unresolved,
+yes,supplier_observation,obs-description,
+yes,canonical_entity,ce-directory,entity-002
+yes,supplier_observation,obs-procurement,
+yes,canonical_entity,ce-none,entity-003
+yes,canonical_entity,ce-conflict,entity-004
+no,canonical_entity,ce-unselected,entity-005
