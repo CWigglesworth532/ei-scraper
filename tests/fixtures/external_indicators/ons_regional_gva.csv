@@ -1,0 +1,2 @@
+measure_id,geography_type,geography_vintage,itl_level,itl_code,period,period_type,value,unit,status
+regional_gva,ITL,2021,2,TLI3,2023,annual,45678,million_gbp,provisional

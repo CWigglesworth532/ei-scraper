@@ -36,3 +36,6 @@ data/canonical/
 
 # Allow committed synthetic SKO-027 geographic-classification fixtures
 !tests/fixtures/geographic_classification/*.csv
+
+# Allow committed synthetic SKO-028 external-indicator fixtures
+!tests/fixtures/external_indicators/*.csv

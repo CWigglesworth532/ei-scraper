@@ -1,0 +1,106 @@
+ingestion_version: sko-028-external-indicators-v1
+transformation_method: configured_local_csv_extract
+transformation_version: configured-csv-v1
+geography_governance:
+  NUTS:
+    versions: ["2024"]
+    levels: ["1", "2", "3"]
+  ITL:
+    versions: ["2021"]
+    levels: ["1", "2", "3"]
+extracts:
+  eurostat_regional_context:
+    file_name: eurostat_regional_context.csv
+    source_id: eurostat
+    source_name: Eurostat
+    dataset_id: synthetic_eurostat_regional_context
+    dataset_title: Synthetic Eurostat-shaped regional context extract
+    dataset_version: "2024-fixture-v1"
+    source_version: "synthetic-fixture-v1"
+    source_reference: "synthetic://eurostat/regional-context"
+    expected_geography:
+      scheme: NUTS
+      version: "2024"
+      levels: ["1", "2", "3"]
+    field_map:
+      indicator_id: indicator
+      geography_scheme: geo_scheme
+      geography_version: geo_version
+      geography_level: geo_level
+      geography_code: geo_code
+      period: time_period
+      period_type: time_type
+      value: obs_value
+      unit: unit_code
+      value_status: obs_status
+    indicators:
+      regional_unemployment_rate:
+        name: Regional unemployment rate
+        description: Synthetic regional unemployment rate observation
+        theme: socioeconomic
+        allowed_units: [percent_labour_force]
+      regional_gdp:
+        name: Regional gross domestic product
+        description: Synthetic regional economic output observation
+        theme: socioeconomic
+        allowed_units: [million_eur]
+  edgar_regional_emissions:
+    file_name: edgar_regional_emissions.csv
+    source_id: jrc_edgar
+    source_name: JRC EDGAR
+    dataset_id: synthetic_edgar_regional_emissions
+    dataset_title: Synthetic EDGAR-shaped regional emissions extract
+    dataset_version: "2024-fixture-v1"
+    source_version: "synthetic-fixture-v1"
+    source_reference: "synthetic://jrc-edgar/regional-emissions"
+    expected_geography:
+      scheme: NUTS
+      version: "2024"
+      levels: ["1", "2", "3"]
+    field_map:
+      indicator_id: series
+      geography_scheme: scheme
+      geography_version: geography_release
+      geography_level: region_level
+      geography_code: region_code
+      period: year
+      period_type: frequency
+      value: amount
+      unit: measure
+      value_status: flag
+    indicators:
+      regional_ghg_emissions:
+        name: Regional greenhouse-gas emissions
+        description: Synthetic regional territorial GHG emissions observation
+        theme: environmental
+        allowed_units: [kt_co2e]
+  ons_regional_gva:
+    file_name: ons_regional_gva.csv
+    source_id: ons
+    source_name: Office for National Statistics
+    dataset_id: synthetic_ons_regional_gva
+    dataset_title: Synthetic ONS-shaped regional GVA extract
+    dataset_version: "2021-fixture-v1"
+    source_version: "synthetic-fixture-v1"
+    source_reference: "synthetic://ons/regional-gva"
+    expected_geography:
+      scheme: ITL
+      version: "2021"
+      levels: ["1", "2", "3"]
+    field_map:
+      indicator_id: measure_id
+      geography_scheme: geography_type
+      geography_version: geography_vintage
+      geography_level: itl_level
+      geography_code: itl_code
+      period: period
+      period_type: period_type
+      value: value
+      unit: unit
+      value_status: status
+    indicators:
+      regional_gva:
+        name: Regional gross value added
+        description: Synthetic regional GVA observation
+        theme: socioeconomic
+        allowed_units: [million_gbp]

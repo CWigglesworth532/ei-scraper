@@ -1,0 +1,2 @@
+series,scheme,geography_release,region_level,region_code,year,frequency,amount,measure,flag
+regional_ghg_emissions,NUTS,2024,2,BE21,2022,annual,987.60,kt_co2e,estimated

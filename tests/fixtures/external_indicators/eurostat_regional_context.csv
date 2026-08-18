@@ -1,0 +1,7 @@
+indicator,geo_scheme,geo_version,geo_level,geo_code,time_period,time_type,obs_value,unit_code,obs_status
+regional_unemployment_rate,NUTS,2024,2,BE21,2024,annual,5.4,percent_labour_force,provisional
+regional_unemployment_rate,NUTS,2024,2,BE21,2024,annual,5.4,percent_labour_force,provisional
+regional_unemployment_rate,NUTS,2024,2,BE21,2023,annual,5.7,percent_labour_force,final
+regional_gdp,NUTS,2024,2,BE21,2023,annual,12345.0,million_eur,final
+not_configured,NUTS,2024,2,BE21,2024,annual,99,index,final
+regional_gdp,NUTS,2016,2,BE21,2023,annual,12345,million_eur,final
