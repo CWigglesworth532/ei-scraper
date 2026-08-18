@@ -1,0 +1,9 @@
+selected,subject_type,subject_id,entity_id,country,postcode,city,address,location_role
+true,canonical_entity,ent_alpha,ent_alpha,gb,"  sw1a   1aa ",London,10 Synthetic Street,registered_or_hq
+true,canonical_entity,ent_eu,ent_eu,BE,2000,Antwerp,20 Synthetic EU Street,registered_or_hq
+true,supplier_observation,obs_activity,,United Kingdom,AB1 2CD,Aberdeen,Synthetic Work Site,contracted_activity
+true,supplier_observation,obs_ambiguous,,Belgium,1000,Brussels,Synthetic Square,unknown
+true,supplier_observation,obs_no_match,,FR,99999,Paris,Known City Only,unknown
+true,supplier_observation,obs_unsupported,,Atlantis,1010,Atlantis,Imaginary Address,unknown
+true,supplier_observation,obs_missing_postcode,,DE,,Berlin,City and address must not infer,registered_or_hq
+false,canonical_entity,ent_not_selected,ent_not_selected,GB,SW1A 1AA,London,Must remain unclassified,registered_or_hq

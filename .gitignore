@@ -33,3 +33,6 @@ data/canonical/
 
 # Allow committed synthetic SKO-023 production-shaped fixtures
 !tests/fixtures/directory_production_shaped/*.csv
+
+# Allow committed synthetic SKO-027 geographic-classification fixtures
+!tests/fixtures/geographic_classification/*.csv

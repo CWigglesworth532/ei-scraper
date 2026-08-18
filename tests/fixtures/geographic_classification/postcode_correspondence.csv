@@ -1,0 +1,10 @@
+country,postcode,geography_scheme,geography_version,geography_level,geography_code,geography_name
+GB,SW1A 1AA,ITL,2021,3,TLI32,Westminster
+GB,SW1A 1AA,ITL,2021,3,TLI32,Westminster
+GB,SW1A 1AA,NUTS,2024,3,UKI32,Invalid current GB NUTS assertion
+United Kingdom,AB1 2CD,ITL,2021,3,TLM50,Aberdeen City and Aberdeenshire
+BE,2000,NUTS,2024,3,BE211,Arr. Antwerpen
+BE,1000,NUTS,2024,3,BE100,Arr. de Bruxelles-Capitale
+BE,1000,NUTS,2024,3,BE241,Arr. Halle-Vilvoorde
+DE,10115,NUTS,2024,3,DE300,Berlin
+FR,75001,OTHER,2024,3,FR101,Paris
