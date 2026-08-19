@@ -212,6 +212,105 @@ class ContextIntegrationTests(unittest.TestCase):
             per_subject.setdefault((row["subject_type"], row["subject_id"]), []).append(row)
         self.assertTrue(all(len(rows) == 1 for rows in per_subject.values()))
 
+    def test_multilevel_subject_qa_does_not_treat_mixed_resolution_as_activity_only(self):
+        subjects = fixture("selected_subjects.fixture")
+        classifications = fixture("geographic_classifications.fixture")
+        observations = fixture("external_indicators.fixture")
+        activity = fixture("activity_evidence.fixture")
+
+        target = next(
+            row for row in classifications
+            if row["subject_type"] == "canonical_entity"
+            and row["subject_id"] == "canonical-01"
+        )
+
+        extra = dict(target)
+        extra["classification_id"] = "geo-multilevel-regression"
+        extra["geography_level"] = "2"
+        extra["geography_code"] = ""
+        extra["geography_name"] = ""
+        extra["mapping_status"] = "insufficient_evidence"
+        classifications.append(extra)
+
+        result = module.integrate_context(
+            subjects,
+            classifications,
+            observations,
+            activity,
+            config=module.load_config(CONFIG),
+            integrated_at=INTEGRATED_AT,
+        )
+
+        self.assertEqual(
+            3,
+            result["qa"]["subjects_with_unresolved_geography"],
+        )
+
+        # canonical-01 has a resolved geography and therefore must not become
+        # activity-only merely because it also has an unresolved level.
+        records = [
+            row for row in result["records"]
+            if row["subject_type"] == "canonical_entity"
+            and row["subject_id"] == "canonical-01"
+        ]
+        self.assertTrue(
+            any(row["mapping_status"] == "resolved" for row in records)
+        )
+
+        resolved_subjects = {
+            (row["subject_type"], row["subject_id"])
+            for row in result["records"]
+            if row["mapping_status"] == "resolved"
+        }
+        with_activity = {
+            (row["subject_type"], row["subject_id"])
+            for row in result["records"]
+            if int(row["activity_evidence_count"]) > 0
+        }
+        all_subjects = {
+            (row["subject_type"], row["subject_id"])
+            for row in result["records"]
+        }
+
+        self.assertEqual(
+            len((all_subjects - resolved_subjects) & with_activity),
+            result["qa"]["subjects_with_activity_only"],
+        )
+
+    def test_case_j_counts_subjects_with_multiple_resolved_levels(self):
+        subjects = fixture("selected_subjects.fixture")
+        classifications = fixture("geographic_classifications.fixture")
+        observations = fixture("external_indicators.fixture")
+        activity = fixture("activity_evidence.fixture")
+
+        target = next(
+            row for row in classifications
+            if row["subject_type"] == "canonical_entity"
+            and row["subject_id"] == "canonical-01"
+        )
+
+        extra = dict(target)
+        extra["classification_id"] = "geo-case-j-regression"
+        extra["geography_level"] = "2"
+        extra["geography_code"] = "TEST-L2"
+        extra["geography_name"] = "Synthetic level 2"
+        extra["mapping_status"] = "resolved"
+        classifications.append(extra)
+
+        result = module.integrate_context(
+            subjects,
+            classifications,
+            observations,
+            activity,
+            config=module.load_config(CONFIG),
+            integrated_at=INTEGRATED_AT,
+        )
+
+        self.assertEqual(
+            1,
+            result["qa"]["case_j_multiple_resolved_levels"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

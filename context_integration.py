@@ -306,7 +306,23 @@ def integrate_context(
     geography_and_activity_only = (
         (resolved_subjects & with_activity) - subjects_with_compatible
     )
-    activity_only = unresolved_subjects & with_activity
+    # "Activity only" means the subject has activity evidence but no
+    # resolved geography at any accepted level. A subject may legitimately
+    # have a resolved assertion at one level and an unresolved assertion at
+    # another; that mixed state must not be classified as activity-only.
+    activity_only = (set(subjects) - resolved_subjects) & with_activity
+
+    resolved_levels_by_subject: dict[tuple[str, str], set[str]] = {}
+    for row in resolved_rows:
+        resolved_levels_by_subject.setdefault(_subject_key(row), set()).add(
+            _clean(row["geography_level"])
+        )
+    multiple_resolved_level_subjects = {
+        key
+        for key, levels in resolved_levels_by_subject.items()
+        if len({level for level in levels if level}) > 1
+    }
+
     observation_versions_by_partial_geo: dict[tuple[str, str, str], set[str]] = {}
     for observation in observation_rows:
         partial_key = (
@@ -375,7 +391,9 @@ def integrate_context(
         "activity_ambiguous_rows": sum(row["evidence_status"] == "ambiguous" for row in activity_rows if _subject_key(row) in subjects),
         "exact_geography_join_matches": sum(row["record_type"] == "enriched" for row in outputs),
         "entity_id_only_join_matches": 0,
-        "case_j_multiple_resolved_levels": 0,
+        "case_j_multiple_resolved_levels": len(
+            multiple_resolved_level_subjects
+        ),
     }
     return {"records": outputs, "qa": {field: qa[field] for field in QA_FIELDS}}
 
