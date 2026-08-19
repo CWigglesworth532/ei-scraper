@@ -1,0 +1,7 @@
+[
+  {"zer_internal_id": "ZER-SYN-001", "organisation": "Synthetic Charity Stiftung", "sitz": "Berlin"},
+  {"zer_internal_id": "ZER-SYN-002", "organisation": "Synthetic Aid e.V.", "sitz": "Bonn"},
+  {"zer_internal_id": "ZER-SYN-002", "organisation": "Duplicate Synthetic Aid e.V.", "sitz": "Bonn"},
+  {"zer_internal_id": "", "organisation": "Missing Identifier Organisation", "sitz": "Kiel"},
+  {"zer_internal_id": "ZER-SYN-003", "organisation": "", "sitz": "Erfurt"}
+]

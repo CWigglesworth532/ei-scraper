@@ -1,0 +1,122 @@
+schema_version: "1.0"
+task_id: SKO-034
+candidate_sources:
+  - source_id: de_bag_if_inclusion_enterprises
+    enabled: false
+    acceptance_state: research
+    country: DE
+    jurisdiction_level: national
+    jurisdiction: DE
+    source_name: BAG IF Unternehmensübersicht
+    publisher: Bundesarbeitsgemeinschaft Inklusionsfirmen e.V.
+    source_family: inclusion_enterprise_directory
+    access_method: public_html
+    source_format: HTML
+    landing_page: https://bag-if.de/unternehmensuebersicht-fuer-menschen-mit-blindheit-und-sehbehinderung/
+    native_record_key: null
+    provenance:
+      preserve_raw_record: true
+      preserve_source_url: true
+      preserve_retrieved_at: true
+    access_terms:
+      terms_url: https://bag-if.de/impressum/
+      assessed_on: "2026-08-19"
+      systematic_reuse: review_required
+      authentication_required: false
+      payment_required: false
+      captcha_observed: false
+      notes: Public directory; systematic reuse terms require owner/legal confirmation.
+    semantic_evidence_layer: Associated
+    source_evidence: Governed specialist membership/directory evidence for inclusion enterprises.
+    policy_classification: none
+    rejected_unresolved_policy: preserve_with_reason
+
+  - source_id: de_bzst_zer
+    enabled: false
+    acceptance_state: research
+    country: DE
+    jurisdiction_level: national
+    jurisdiction: DE
+    source_name: BZSt Zuwendungsempfaengerregister
+    publisher: Bundeszentralamt fuer Steuern
+    source_family: tax_designation_register
+    access_method: local_build
+    source_format: local-build
+    landing_page: https://zer.bzst.de/
+    native_record_key: zer_internal_id
+    provenance:
+      preserve_raw_record: true
+      preserve_source_url: true
+      preserve_retrieved_at: true
+    access_terms:
+      terms_url: https://zer.bzst.de/
+      assessed_on: "2026-08-19"
+      systematic_reuse: review_required
+      authentication_required: false
+      payment_required: false
+      captcha_observed: false
+      notes: Existing reverse-engineered local build requires current reuse confirmation before promotion.
+    semantic_evidence_layer: Core
+    source_evidence: Official tax-designation evidence; eligibility to issue donation receipts.
+    policy_classification: none
+    rejected_unresolved_policy: preserve_with_reason
+
+  - source_id: de_registerportal_manual_verification
+    enabled: false
+    acceptance_state: research
+    country: DE
+    jurisdiction_level: national_federated
+    jurisdiction: DE
+    source_name: Gemeinsames Registerportal der Laender
+    publisher: Landesjustizverwaltungen
+    source_family: identity_register
+    access_method: manual_individual_query
+    source_format: XML
+    landing_page: https://www.handelsregister.de/
+    native_record_key: court_register_type_register_number
+    provenance:
+      preserve_raw_record: true
+      preserve_source_url: true
+      preserve_retrieved_at: true
+    access_terms:
+      terms_url: https://www.handelsregister.de/rp_web/information/welcome.xhtml
+      assessed_on: "2026-08-19"
+      systematic_reuse: prohibited
+      authentication_required: false
+      payment_required: false
+      captcha_observed: unknown
+      notes: Individual informational retrieval only; no systematic parallel-register build.
+    semantic_evidence_layer: Review-only
+    source_evidence: Official identity, register type, court, number, status and available structured content.
+    policy_classification: none
+    rejected_unresolved_policy: preserve_with_reason
+
+  - source_id: ch_zefix_comparator
+    enabled: false
+    acceptance_state: research
+    country: CH
+    jurisdiction_level: national
+    jurisdiction: CH
+    source_name: Zefix Public REST comparator
+    publisher: Swiss Federal Commercial Registry Office
+    source_family: identity_register
+    access_method: public_api
+    source_format: JSON
+    landing_page: https://www.zefix.admin.ch/ZefixPublicREST/
+    native_record_key: uid
+    provenance:
+      preserve_raw_record: true
+      preserve_source_url: true
+      preserve_retrieved_at: true
+    access_terms:
+      terms_url: https://www.zefix.admin.ch/
+      assessed_on: "2026-08-19"
+      systematic_reuse: permitted_with_terms_review
+      authentication_required: false
+      payment_required: false
+      captcha_observed: false
+      notes: Comparator only; not a German production candidate.
+    semantic_evidence_layer: Review-only
+    source_evidence: Official identity and legal-form evidence, not social-economy classification.
+    policy_classification: none
+    rejected_unresolved_policy: preserve_with_reason
