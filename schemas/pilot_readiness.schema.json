@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skopia.example/schemas/pilot_readiness.schema.json",
+  "title": "SKO-031 pilot readiness decision",
+  "type": "object",
+  "required": ["pilot_id", "preparation_version", "prepared_at", "status", "structural_blockers", "known_gaps"],
+  "properties": {
+    "pilot_id": {"type": "string", "minLength": 1},
+    "preparation_version": {"const": "sko-031-pilot-preparation-v1"},
+    "prepared_at": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["ready_for_sko_032", "ready_with_known_gaps", "blocked"]},
+    "structural_blockers": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "known_gaps": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+  },
+  "additionalProperties": false
+}

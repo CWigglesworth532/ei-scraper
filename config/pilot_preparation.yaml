@@ -1,0 +1,7 @@
+preparation_version: sko-031-pilot-preparation-v1
+allowed_subject_types: [canonical_entity, supplier_observation]
+allowed_location_roles: [registered_or_hq, contracted_activity, unknown]
+selected_values: ["1", "true", "yes", "selected"]
+readiness_statuses: [ready_for_sko_032, ready_with_known_gaps, blocked]
+required_subject_fields: [selected, subject_type, subject_id, entity_id, country, postcode, city, address, location_role]
+contextual_claim_boundary: regional_context_only_never_supplier_impact_or_causality

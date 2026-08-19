@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skopia.example/schemas/pilot_context_review.schema.json",
+  "title": "SKO-031 contextual review row",
+  "type": "object",
+  "required": ["subject_type", "subject_id", "entity_id", "supplier_display_name", "source_client", "source_supplier_record_key", "location_role", "country", "postcode", "geography_scheme", "geography_version", "geography_level", "geography_code", "geography_name", "mapping_status", "mapping_confidence", "indicator_id", "indicator_name", "indicator_theme", "period", "value", "unit", "value_status", "source_id", "source_name", "dataset_id", "dataset_version", "activity_evidence_count", "activity_authority_counts", "activity_status_counts", "activity_has_authoritative_or_strong", "record_type", "missingness_reason", "review_required"],
+  "properties": {
+    "subject_type": {"enum": ["canonical_entity", "supplier_observation"]},
+    "subject_id": {"type": "string", "minLength": 1},
+    "entity_id": {"type": "string"},
+    "location_role": {"enum": ["registered_or_hq", "contracted_activity", "unknown"]},
+    "record_type": {"enum": ["enriched", "staging", "preparation_only"]},
+    "mapping_status": {"type": "string"},
+    "activity_evidence_count": {"type": "string", "pattern": "^(|[0-9]+)$"},
+    "activity_authority_counts": {"type": "string", "pattern": "^(|\\{.*\\})$"},
+    "activity_status_counts": {"type": "string", "pattern": "^(|\\{.*\\})$"},
+    "activity_has_authoritative_or_strong": {"enum": ["", "true", "false"]},
+    "review_required": {"enum": ["true", "false"]}
+  },
+  "allOf": [
+    {"if": {"properties": {"subject_type": {"const": "canonical_entity"}}}, "then": {"properties": {"entity_id": {"minLength": 1}}}},
+    {"if": {"properties": {"record_type": {"const": "preparation_only"}}}, "then": {"properties": {"mapping_status": {"const": ""}, "activity_evidence_count": {"const": ""}, "activity_authority_counts": {"const": ""}, "activity_status_counts": {"const": ""}, "activity_has_authoritative_or_strong": {"const": ""}, "missingness_reason": {"const": "contextual_runtime_not_available"}, "review_required": {"const": "false"}}}}
+  ],
+  "additionalProperties": {"type": "string"}
+}

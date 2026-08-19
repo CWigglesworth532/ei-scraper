@@ -1,0 +1,13 @@
+{
+  "selected_subjects": 3,
+  "subjects_with_resolved_geography": 2,
+  "subjects_with_unresolved_geography": 1,
+  "subjects_with_compatible_indicators": 2,
+  "subjects_with_resolved_geography_no_compatible_indicator": 0,
+  "blocked_geography_version_mismatch_count": 0,
+  "subjects_with_any_activity_evidence": 2,
+  "subjects_with_authoritative_or_strong_activity_evidence": 1,
+  "subjects_with_contextual_or_weak_activity_evidence_only": 1,
+  "subjects_with_no_activity_evidence": 1,
+  "activity_review_required_rows": 0
+}

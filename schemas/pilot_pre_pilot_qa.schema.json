@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skopia.example/schemas/pilot_pre_pilot_qa.schema.json",
+  "title": "SKO-031 pre-pilot QA",
+  "type": "object",
+  "required": ["selected_subjects", "canonical_entity_subjects", "supplier_observation_subjects", "distinct_entity_ids", "duplicate_subject_keys", "conflicting_subject_keys", "canonical_subjects_missing_entity_id", "supplier_observation_entity_id_context_count", "subjects_with_country", "subjects_with_postcode", "subjects_with_country_and_postcode", "subjects_lacking_sufficient_geography_input", "location_role_registered_or_hq", "location_role_contracted_activity", "location_role_unknown", "tracked_live_files", "sko030_runtime_available", "geography_runtime_available", "indicator_runtime_available", "activity_runtime_available", "subjects_with_resolved_geography", "subjects_with_unresolved_geography", "subjects_with_compatible_indicators", "subjects_with_resolved_geography_no_compatible_indicator", "blocked_geography_version_mismatch_count", "subjects_with_any_activity_evidence", "subjects_with_authoritative_or_strong_activity_evidence", "subjects_with_contextual_or_weak_only_activity_evidence", "subjects_with_activity_review_required", "subjects_with_no_activity_evidence", "geography_scheme_version_combinations"],
+  "properties": {
+    "selected_subjects": {"$ref": "#/$defs/count"}, "canonical_entity_subjects": {"$ref": "#/$defs/count"}, "supplier_observation_subjects": {"$ref": "#/$defs/count"}, "distinct_entity_ids": {"$ref": "#/$defs/count"},
+    "duplicate_subject_keys": {"$ref": "#/$defs/count"}, "conflicting_subject_keys": {"$ref": "#/$defs/count"}, "canonical_subjects_missing_entity_id": {"$ref": "#/$defs/count"}, "supplier_observation_entity_id_context_count": {"$ref": "#/$defs/count"},
+    "subjects_with_country": {"$ref": "#/$defs/count"}, "subjects_with_postcode": {"$ref": "#/$defs/count"}, "subjects_with_country_and_postcode": {"$ref": "#/$defs/count"}, "subjects_lacking_sufficient_geography_input": {"$ref": "#/$defs/count"},
+    "location_role_registered_or_hq": {"$ref": "#/$defs/count"}, "location_role_contracted_activity": {"$ref": "#/$defs/count"}, "location_role_unknown": {"$ref": "#/$defs/count"}, "tracked_live_files": {"$ref": "#/$defs/count"},
+    "sko030_runtime_available": {"type": "boolean"}, "geography_runtime_available": {"type": "boolean"}, "indicator_runtime_available": {"type": "boolean"}, "activity_runtime_available": {"type": "boolean"},
+    "subjects_with_resolved_geography": {"$ref": "#/$defs/runtimeCount"}, "subjects_with_unresolved_geography": {"$ref": "#/$defs/runtimeCount"}, "subjects_with_compatible_indicators": {"$ref": "#/$defs/runtimeCount"}, "subjects_with_resolved_geography_no_compatible_indicator": {"$ref": "#/$defs/runtimeCount"}, "blocked_geography_version_mismatch_count": {"$ref": "#/$defs/runtimeCount"},
+    "subjects_with_any_activity_evidence": {"$ref": "#/$defs/runtimeCount"}, "subjects_with_authoritative_or_strong_activity_evidence": {"$ref": "#/$defs/runtimeCount"}, "subjects_with_contextual_or_weak_only_activity_evidence": {"$ref": "#/$defs/runtimeCount"}, "subjects_with_activity_review_required": {"$ref": "#/$defs/runtimeCount"}, "subjects_with_no_activity_evidence": {"$ref": "#/$defs/runtimeCount"},
+    "geography_scheme_version_combinations": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+  },
+  "$defs": {"count": {"type": "integer", "minimum": 0}, "runtimeCount": {"type": ["integer", "null"], "minimum": 0}},
+  "additionalProperties": false
+}

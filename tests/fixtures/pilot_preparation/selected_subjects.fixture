@@ -1,0 +1,4 @@
+selected,subject_type,subject_id,entity_id,country,postcode,city,address,location_role,supplier_display_name,source_client,source_supplier_record_key,source_file_reference,source_row_reference,selection_basis
+true,canonical_entity,canonical-01,entity-01,DE,10115,Berlin,Synthetic Street 1,registered_or_hq,Synthetic Alpha,Client A,A-001,synthetic-a.csv,2,reviewed_confirmed
+true,supplier_observation,observation-01,entity-01,GB,SW1A 1AA,London,Synthetic Road 2,contracted_activity,Synthetic Alpha Site,Client B,B-001,synthetic-b.csv,3,reviewed_confirmed
+true,supplier_observation,observation-02,,FR,,,Synthetic Avenue 3,unknown,Synthetic Beta Site,Client A,A-002,synthetic-a.csv,4,reviewed_confirmed

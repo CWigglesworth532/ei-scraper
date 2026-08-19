@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skopia.example/schemas/pilot_manifest.schema.json",
+  "title": "SKO-031 pilot manifest",
+  "type": "object",
+  "required": ["pilot_id", "preparation_version", "prepared_at", "repository_commit", "selected_subject_count", "canonical_entity_subject_count", "supplier_observation_subject_count", "distinct_entity_id_count", "source_client_counts", "location_role_counts", "input_files", "geography_dependencies", "indicator_dependencies", "activity_dependencies", "live_data_safety"],
+  "properties": {
+    "pilot_id": {"type": "string", "minLength": 1},
+    "preparation_version": {"const": "sko-031-pilot-preparation-v1"},
+    "prepared_at": {"type": "string", "format": "date-time"},
+    "repository_commit": {"type": "string", "minLength": 7},
+    "selected_subject_count": {"type": "integer", "minimum": 0},
+    "canonical_entity_subject_count": {"type": "integer", "minimum": 0},
+    "supplier_observation_subject_count": {"type": "integer", "minimum": 0},
+    "distinct_entity_id_count": {"type": "integer", "minimum": 0},
+    "source_client_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}},
+    "location_role_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}},
+    "input_files": {"type": "array", "items": {"$ref": "#/$defs/fileEntry"}},
+    "geography_dependencies": {"type": "array", "items": {"type": "object"}},
+    "indicator_dependencies": {"type": "array", "items": {"type": "object"}},
+    "activity_dependencies": {"type": "array", "items": {"type": "object"}},
+    "live_data_safety": {"type": "object", "required": ["expected_local_root", "tracked_live_file_count"], "properties": {"expected_local_root": {"type": "string", "minLength": 1}, "tracked_live_file_count": {"type": "integer", "minimum": 0}}, "additionalProperties": false}
+  },
+  "$defs": {"fileEntry": {"type": "object", "required": ["logical_role", "path_reference", "sha256"], "properties": {"logical_role": {"type": "string", "minLength": 1}, "path_reference": {"type": "string", "minLength": 1}, "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "row_count": {"type": "integer", "minimum": 0}}, "additionalProperties": false}},
+  "additionalProperties": false
+}
