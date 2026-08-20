@@ -1,0 +1,34 @@
+schema_version: sko-035-purchased-activity-assertion-v1
+nace_scheme: NACE
+nace_version: "Rev. 2"
+high_materiality_values: [high]
+confidence_rules: {High: strong, Medium: reviewed, Low: weak}
+evidence_rules:
+  contract_service: {authority: authoritative}
+  supplier_service_line: {authority: strong}
+  official_activity: {authority: authoritative}
+  other_business_activity: {authority: strong}
+  procurement_category: {authority: contextual}
+  broad_inference: {authority: weak}
+nace_catalogue:
+  "56.21":
+    level: 4
+    description: Event catering activities
+  "81.21":
+    level: 4
+    description: General cleaning of buildings
+  "62":
+    level: 2
+    description: "Computer programming, consultancy and related activities"
+  "95.10":
+    level: 4
+    description: Repair of computers and communication equipment
+crosswalks:
+  synthetic-cnae-8121-to-nace-8121-test-only:
+    source_scheme: CNAE
+    source_version: "synthetic-cnae-2009"
+    source_code: "8121"
+    target_scheme: NACE
+    target_version: "Rev. 2"
+    target_code: "81.21"
+    correspondence_version: synthetic-test-only-correspondence-v1

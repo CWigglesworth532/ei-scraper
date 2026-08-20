@@ -42,3 +42,6 @@ data/canonical/
 
 # Allow committed synthetic SKO-029 activity-evidence fixtures
 !tests/fixtures/activity_evidence/*.csv
+
+# Allow committed synthetic SKO-035 purchased-activity/NACE fixtures
+!tests/fixtures/purchased_activity_nace/*.csv

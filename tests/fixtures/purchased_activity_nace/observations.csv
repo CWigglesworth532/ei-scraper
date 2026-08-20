@@ -1,0 +1,7 @@
+selected,subject_type,subject_id,entity_id,client_reference,spend,spend_year,supplier_country,materiality
+yes,canonical_entity,obs-clean,entity-001,client-ref-001,1000.00,2025,GB,medium
+yes,supplier_observation,obs-split,,client-ref-002,600.00,2025,ES,medium
+yes,supplier_observation,obs-weak,,client-ref-003,9000.00,2025,GB,high
+yes,supplier_observation,obs-unresolved,,client-ref-004,200.00,2024,FR,low
+yes,supplier_observation,obs-crosswalk,,client-ref-005,300.00,2025,ES,low
+no,supplier_observation,obs-unselected,,client-ref-006,999.00,2025,GB,high

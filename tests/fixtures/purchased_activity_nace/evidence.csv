@@ -1,0 +1,9 @@
+evidence_key,subject_id,evidence_type,evidence_reference,evidence_date,activity_scheme,activity_version,activity_code_raw,activity_description_raw
+ev-contract,obs-clean,contract_service,synthetic://contract/1,2026-08-01,,,,Cleaning service
+ev-supplier,obs-split,supplier_service_line,synthetic://supplier/services,2026-07-01,,,,Cleaning and catering
+ev-official,obs-split,official_activity,synthetic://register/2,2026-06-01,NACE,Rev. 2,56.21,Event catering
+ev-proc,obs-weak,procurement_category,synthetic://procurement/3,2026-08-01,,,,IT services
+ev-conflict,obs-weak,broad_inference,synthetic://research/3,2026-08-02,,,,Hardware repair may apply
+ev-unresolved,obs-unresolved,other_business_activity,synthetic://research/4,2026-05-01,,,,Diversified services
+ev-cnae,obs-crosswalk,official_activity,synthetic://register/5,2026-06-01,CNAE,synthetic-cnae-2009,8121,Limpieza general de edificios
+ev-hidden,obs-unselected,contract_service,synthetic://contract/6,2026-08-01,,,,Hidden

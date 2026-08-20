@@ -1,0 +1,221 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "SKO-035 purchased activity assertion",
+    "type": "object",
+    "required": [
+        "activity_assignment_id",
+        "subject_type",
+        "subject_id",
+        "entity_id",
+        "client_reference",
+        "spend",
+        "spend_year",
+        "supplier_country",
+        "purchased_activity_description",
+        "nace_scheme",
+        "nace_version",
+        "nace_code",
+        "nace_level",
+        "nace_description",
+        "evidence_ids",
+        "evidence_dates",
+        "assignment_method",
+        "assignment_confidence",
+        "contract_specific",
+        "multi_activity",
+        "spend_split",
+        "allocation_share",
+        "allocated_spend",
+        "rationale",
+        "review_status",
+        "reviewer_decision_reference",
+        "materiality_state",
+        "review_escalation_state",
+        "conflicting_evidence",
+        "source_version",
+        "decision_version",
+        "generated_at",
+        "assertion_fingerprint",
+        "schema_version"
+    ],
+    "properties": {
+        "activity_assignment_id": {
+            "type": "string",
+            "pattern": "^paas_[0-9a-f]{24}$"
+        },
+        "subject_type": {
+            "enum": [
+                "canonical_entity",
+                "supplier_observation"
+            ]
+        },
+        "subject_id": {
+            "type": "string",
+            "minLength": 1
+        },
+        "entity_id": {
+            "type": "string"
+        },
+        "client_reference": {
+            "type": "string",
+            "minLength": 1
+        },
+        "spend": {
+            "type": "string"
+        },
+        "spend_year": {
+            "type": "string"
+        },
+        "supplier_country": {
+            "type": "string"
+        },
+        "purchased_activity_description": {
+            "type": "string",
+            "minLength": 1
+        },
+        "nace_scheme": {
+            "enum": [
+                "",
+                "NACE"
+            ]
+        },
+        "nace_version": {
+            "type": "string"
+        },
+        "nace_code": {
+            "type": "string"
+        },
+        "nace_level": {
+            "type": "string"
+        },
+        "nace_description": {
+            "type": "string"
+        },
+        "evidence_ids": {
+            "type": "string"
+        },
+        "evidence_dates": {
+            "type": "string"
+        },
+        "assignment_method": {
+            "type": "string"
+        },
+        "assignment_confidence": {
+            "enum": [
+                "High",
+                "Medium",
+                "Low"
+            ]
+        },
+        "contract_specific": {
+            "enum": [
+                "true",
+                "false"
+            ]
+        },
+        "multi_activity": {
+            "enum": [
+                "true",
+                "false"
+            ]
+        },
+        "spend_split": {
+            "enum": [
+                "true",
+                "false"
+            ]
+        },
+        "allocation_share": {
+            "type": "string"
+        },
+        "allocated_spend": {
+            "type": "string"
+        },
+        "rationale": {
+            "type": "string",
+            "minLength": 1
+        },
+        "review_status": {
+            "type": "string"
+        },
+        "reviewer_decision_reference": {
+            "type": "string"
+        },
+        "materiality_state": {
+            "type": "string"
+        },
+        "review_escalation_state": {
+            "enum": [
+                "required",
+                "not_required"
+            ]
+        },
+        "conflicting_evidence": {
+            "enum": [
+                "true",
+                "false"
+            ]
+        },
+        "source_version": {
+            "type": "string"
+        },
+        "decision_version": {
+            "type": "string"
+        },
+        "generated_at": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "assertion_fingerprint": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+        },
+        "schema_version": {
+            "const": "sko-035-purchased-activity-assertion-v1"
+        }
+    },
+    "allOf": [
+        {
+            "if": {
+                "properties": {
+                    "subject_type": {
+                        "const": "canonical_entity"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "entity_id": {
+                        "minLength": 1
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "nace_code": {
+                        "const": ""
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "nace_scheme": {
+                        "const": ""
+                    },
+                    "nace_version": {
+                        "const": ""
+                    },
+                    "nace_level": {
+                        "const": ""
+                    },
+                    "nace_description": {
+                        "const": ""
+                    }
+                }
+            }
+        }
+    ],
+    "additionalProperties": false
+}
