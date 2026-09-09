@@ -103,11 +103,16 @@ accounting_identity:
   absolute_tolerance: "0.1"
   tolerance_basis: published_million_euro_rounding
 
-year_fallback_policy:
-  automatic_fallback_enabled: false
-  status: deferred_pending_real_coverage_matrix
-  rule: exact_year_only_until_owner_approves_bounded_fallback
-  required_evidence: country_x_sector_x_year_x_outcome_coverage_matrix
+reference_year_policy:
+  mode: fixed_release_year
+  primary_reference_year: 2023
+  automatic_year_fallback_enabled: false
+  status: owner_approved_2026-09-09
+  rule: use_2023_exact_year_coefficients_only_for_v1
+  spend_year_matching_required: false
+  provenance_requirement: record_spend_year_and_coefficient_reference_year_separately
+  missing_2023_rule: hold_out_for_review
+  rationale: 2023 provides the most complete stable common-year coverage across Eurostat country x sector x outcome diagnostics while avoiding mixed-year coefficient releases
 
 source_catalogue:
   eurostat_national_accounts:
