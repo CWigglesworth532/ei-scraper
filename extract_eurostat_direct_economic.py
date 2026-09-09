@@ -16,6 +16,7 @@ API_BASE = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data"
 MODEL_CLASSIFICATION = "NACE"
 MODEL_CLASSIFICATION_VERSION = "Rev. 2 A*64"
 DEFAULT_COUNTRIES = ["AT", "BE", "CH", "DE", "ES", "FI", "FR", "IE", "IT"]
+GOVERNED_TRADE_DIVISIONS = {"G45", "G46", "G47"}
 
 SOURCE_FIELDS = [
     "source_family", "source_organisation", "source_dataset_id", "source_release_version",
@@ -240,21 +241,36 @@ def extract_sbs(country: str, start_year: int, end_year: int, retrieved_at: str)
     return rows
 
 
-def constrain_to_a64_model(rows: list[dict[str, str]]) -> tuple[list[dict[str, str]], int]:
+def constrain_to_a64_model(rows: list[dict[str, str]]) -> tuple[list[dict[str, str]], int, int]:
+    """Retain A*64 SBS rows plus governed trade-division overrides.
+
+    Ordinary SBS rows are retained only when their NACE code is present in the
+    country-specific nama_10_a64 vocabulary, preventing detailed SBS classes/groups
+    from becoming pseudo-model sectors. The accepted hybrid denominator architecture
+    is an explicit exception: G45/G46/G47 require turnover-compatible SBS denominators,
+    so those division rows are retained even where nama_10_a64 exposes only a broader
+    trade aggregate.
+    """
     a64_by_country: dict[str, set[str]] = {}
     for row in rows:
         if row["source_dataset_id"] == "nama_10_a64":
             a64_by_country.setdefault(row["country"], set()).add(row["model_sector_code"])
     kept: list[dict[str, str]] = []
     dropped = 0
+    retained_trade_overrides = 0
     for row in rows:
         if row["source_dataset_id"] != "sbs_ovw_act":
             kept.append(row)
-        elif row["model_sector_code"] in a64_by_country.get(row["country"], set()):
+            continue
+        sector = row["model_sector_code"]
+        if sector in a64_by_country.get(row["country"], set()):
             kept.append(row)
+        elif sector in GOVERNED_TRADE_DIVISIONS:
+            kept.append(row)
+            retained_trade_overrides += 1
         else:
             dropped += 1
-    return kept, dropped
+    return kept, dropped, retained_trade_overrides
 
 
 def write_csv(rows: Iterable[dict[str, str]], path: Path) -> None:
@@ -288,7 +304,7 @@ def main() -> int:
             except Exception as exc:
                 errors.append({"country": country, "dataset": name, "error": f"{type(exc).__name__}: {exc}"})
     raw_rows = len(rows)
-    rows, sbs_rows_dropped_non_a64 = constrain_to_a64_model(rows)
+    rows, sbs_rows_dropped_non_a64, sbs_trade_override_rows_retained = constrain_to_a64_model(rows)
     rows.sort(key=lambda r: (r["country"], r["source_dataset_id"], r["model_sector_code"], r["reference_year"], r["concept_code"]))
     write_csv(rows, args.output)
     summary = {
@@ -299,6 +315,7 @@ def main() -> int:
         "raw_rows_retrieved": raw_rows,
         "rows_written": len(rows),
         "sbs_rows_dropped_non_a64": sbs_rows_dropped_non_a64,
+        "sbs_trade_override_rows_retained": sbs_trade_override_rows_retained,
         "model_sector_pairs": len({(r["country"], r["model_sector_code"]) for r in rows}),
         "countries_with_rows": sorted({r["country"] for r in rows}),
         "datasets_with_rows": sorted({r["source_dataset_id"] for r in rows}),
