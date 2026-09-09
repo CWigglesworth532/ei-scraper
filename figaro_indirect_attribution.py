@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter, defaultdict
+from pathlib import Path
 from typing import Any, Mapping
 
 import numpy as np
@@ -62,13 +63,42 @@ def _source_meta(config: Mapping[str, Any]) -> dict[str, str]:
     }
 
 
-def build_figaro_model(transactions: list[dict[str, str]], outputs: list[dict[str, str]]) -> dict[str, Any]:
-    """Build A, L and U=L-I from normalized FIGARO rows.
+def _finalize_model(nodes: list[tuple[str, str]], z: np.ndarray, x: np.ndarray) -> dict[str, Any]:
+    if not nodes:
+        raise ValueError("FIGARO output vector is empty")
+    z = np.asarray(z, dtype=float)
+    x = np.asarray(x, dtype=float)
+    n = len(nodes)
+    if z.shape != (n, n):
+        raise ValueError(f"FIGARO Z matrix shape {z.shape} does not match {n} nodes")
+    if x.shape != (n,):
+        raise ValueError(f"FIGARO output vector shape {x.shape} does not match {n} nodes")
+    if not np.all(np.isfinite(z)) or not np.all(np.isfinite(x)):
+        raise ValueError("FIGARO compact model contains non-finite values")
+    if np.any(z < 0):
+        raise ValueError("negative FIGARO intermediate transaction is not supported in v1")
+    if np.any(x <= 0):
+        raise ValueError("FIGARO output must be positive for every model node")
+    if len(set(nodes)) != n:
+        raise ValueError("duplicate FIGARO model node")
+    index = {node: i for i, node in enumerate(nodes)}
+    a = z / x[np.newaxis, :]
+    ident = np.eye(n)
+    try:
+        l = np.linalg.inv(ident - a)
+    except np.linalg.LinAlgError as exc:
+        raise ValueError("FIGARO Leontief system is singular") from exc
+    err = float(np.max(np.abs((ident - a) @ l - ident)))
+    if err > 1e-9:
+        raise ValueError(f"Leontief inversion reconciliation failed: {err}")
+    return {
+        "nodes": nodes, "index": index, "x": x, "a": a, "l": l,
+        "u": l - ident, "max_inverse_error": err,
+    }
 
-    transaction fields: origin_country, origin_sector, destination_country,
-    destination_sector, value_million_eur
-    output fields: country, sector, output_million_eur
-    """
+
+def build_figaro_model(transactions: list[dict[str, str]], outputs: list[dict[str, str]]) -> dict[str, Any]:
+    """Build A, L and U=L-I from normalized FIGARO rows."""
     output_by_node: dict[tuple[str, str], float] = {}
     for r in outputs:
         n = _node(r.get("country", ""), r.get("sector", ""))
@@ -81,8 +111,6 @@ def build_figaro_model(transactions: list[dict[str, str]], outputs: list[dict[st
             raise ValueError(f"FIGARO output must be positive for {n}")
         output_by_node[n] = value
     nodes = sorted(output_by_node)
-    if not nodes:
-        raise ValueError("FIGARO output vector is empty")
     index = {n: i for i, n in enumerate(nodes)}
     z = np.zeros((len(nodes), len(nodes)), dtype=float)
     for r in transactions:
@@ -95,16 +123,38 @@ def build_figaro_model(transactions: list[dict[str, str]], outputs: list[dict[st
             raise ValueError("negative FIGARO intermediate transaction is not supported in v1")
         z[index[origin], index[dest]] += value
     x = np.array([output_by_node[n] for n in nodes], dtype=float)
-    a = z / x[np.newaxis, :]
-    ident = np.eye(len(nodes))
-    try:
-        l = np.linalg.inv(ident - a)
-    except np.linalg.LinAlgError as exc:
-        raise ValueError("FIGARO Leontief system is singular") from exc
-    err = float(np.max(np.abs((ident - a) @ l - ident)))
-    if err > 1e-9:
-        raise ValueError(f"Leontief inversion reconciliation failed: {err}")
-    return {"nodes": nodes, "index": index, "x": x, "a": a, "l": l, "u": l - ident, "max_inverse_error": err}
+    return _finalize_model(nodes, z, x)
+
+
+def build_figaro_model_from_npz(path: str | Path) -> dict[str, Any]:
+    """Load the governed compact model package emitted by figaro_matrix_normalizer."""
+    package_path = Path(path)
+    with np.load(package_path, allow_pickle=False) as pkg:
+        required = {
+            "schema_version", "source_filename", "source_sha256",
+            "countries", "sectors", "z_million_eur", "output_million_eur",
+        }
+        missing = required - set(pkg.files)
+        if missing:
+            raise ValueError(f"compact FIGARO package missing arrays: {sorted(missing)}")
+        schema = str(np.asarray(pkg["schema_version"]).reshape(-1)[0])
+        if schema != "sko-039-figaro-compact-model-v1":
+            raise ValueError(f"unsupported compact FIGARO schema: {schema}")
+        countries = np.asarray(pkg["countries"]).astype(str)
+        sectors = np.asarray(pkg["sectors"]).astype(str)
+        if countries.shape != sectors.shape or countries.ndim != 1:
+            raise ValueError("compact FIGARO country/sector arrays must be aligned 1-D vectors")
+        nodes = [_node(c, s) for c, s in zip(countries.tolist(), sectors.tolist())]
+        z = np.asarray(pkg["z_million_eur"], dtype=float)
+        x = np.asarray(pkg["output_million_eur"], dtype=float)
+        source = {
+            "filename": str(np.asarray(pkg["source_filename"]).reshape(-1)[0]),
+            "sha256": str(np.asarray(pkg["source_sha256"]).reshape(-1)[0]),
+            "schema_version": schema,
+        }
+    model = _finalize_model(nodes, z, x)
+    model["compact_source"] = source
+    return model
 
 
 def build_satellite_intensities(model: Mapping[str, Any], rows: list[dict[str, str]], config: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
@@ -198,6 +248,12 @@ def _direct_index(rows: list[dict[str, str]]) -> dict[tuple[str, str], tuple[flo
 def compose_figaro_attribution(cohort: list[dict[str, str]], direct_rows: list[dict[str, str]], transactions: list[dict[str, str]], outputs: list[dict[str, str]], satellite_rows: list[dict[str, str]], config: Mapping[str, Any]) -> dict[str, Any]:
     _require_cohort(cohort)
     model = build_figaro_model(transactions, outputs)
+    return compose_figaro_attribution_with_model(cohort, direct_rows, model, satellite_rows, config)
+
+
+def compose_figaro_attribution_with_model(cohort: list[dict[str, str]], direct_rows: list[dict[str, str]], model: Mapping[str, Any], satellite_rows: list[dict[str, str]], config: Mapping[str, Any]) -> dict[str, Any]:
+    """Compose attribution from an already-built governed FIGARO model."""
+    _require_cohort(cohort)
     mapping = map_observations(cohort, model, config)
     satellites = build_satellite_intensities(model, satellite_rows, config)
     by_id = {r["selection_id"]: r for r in cohort}
@@ -239,14 +295,23 @@ def compose_figaro_attribution(cohort: list[dict[str, str]], direct_rows: list[d
                         if abs(value) <= 1e-15:
                             continue
                         country, sector = model["nodes"][i]
-                        contributions.append({"selection_id": sid, "outcome": outcome, "origin_country": country, "origin_figaro_sector": sector, "indirect_value": _fmt(float(value)), "unit": unit, "contribution_share": _fmt(abs(float(value)) / denom) if denom else "0", **{k: meta[k] for k in ("source_product", "source_edition", "reference_year")}})
+                        contributions.append({
+                            "selection_id": sid, "outcome": outcome, "origin_country": country,
+                            "origin_figaro_sector": sector, "indirect_value": _fmt(float(value)),
+                            "unit": unit, "contribution_share": _fmt(abs(float(value)) / denom) if denom else "0",
+                            **{k: meta[k] for k in ("source_product", "source_edition", "reference_year")},
+                        })
             outcomes.append({
                 "selection_id": sid, "spend_eur": _fmt(spend), "country": (c.get("country") or "").strip().upper(),
-                "direct_model_sector": m["model_sector"], "figaro_source_country": m["figaro_country"], "figaro_source_sector": m["figaro_sector"],
-                "outcome": outcome, "direct_value": "" if not np.isfinite(direct_value) else _fmt(direct_value),
-                "indirect_value": "" if not np.isfinite(indirect) else _fmt(indirect), "combined_value": "" if not np.isfinite(combined) else _fmt(combined),
-                "multiplier": "" if not np.isfinite(multiplier) else _fmt(multiplier), "unit": unit, **meta,
-                "mapping_provenance": f"{m['mapping_version']}|{m['mapping_reason']}", "status": status, "holdout_reason": reason,
+                "direct_model_sector": m["model_sector"], "figaro_source_country": m["figaro_country"],
+                "figaro_source_sector": m["figaro_sector"], "outcome": outcome,
+                "direct_value": "" if not np.isfinite(direct_value) else _fmt(direct_value),
+                "indirect_value": "" if not np.isfinite(indirect) else _fmt(indirect),
+                "combined_value": "" if not np.isfinite(combined) else _fmt(combined),
+                "multiplier": "" if not np.isfinite(multiplier) else _fmt(multiplier),
+                "unit": unit, **meta,
+                "mapping_provenance": f"{m['mapping_version']}|{m['mapping_reason']}",
+                "status": status, "holdout_reason": reason,
                 "aggregation_boundary": boundary, "double_counting_status": double_counting,
             })
 
@@ -262,7 +327,15 @@ def compose_figaro_attribution(cohort: list[dict[str, str]], direct_rows: list[d
         mapped_spend = sum(_f(cohort_by_id[i]["spend_eur"], f"mapped spend {i}") for i in ids)
         direct_total = sum(_f(r["direct_value"], "direct") for r in available if r["direct_value"])
         indirect_total = sum(_f(r["indirect_value"], "indirect") for r in available if r["indirect_value"])
-        portfolio.append({"outcome": outcome, "direct_total": _fmt(direct_total), "indirect_total": _fmt(indirect_total), "combined_total": _fmt(direct_total + indirect_total), "mapped_spend": _fmt(mapped_spend), "total_spend": _fmt(total_spend), "coverage_pct": _fmt(100 * mapped_spend / total_spend) if total_spend else "0", "unit": next((r["unit"] for r in available if r["unit"]), ""), "aggregation_boundary": boundary, "double_counting_status": double_counting, "caveats": str(config.get("portfolio_policy", {}).get("caveat", "gross upstream requirements may overlap across Tier-1 observations"))})
+        portfolio.append({
+            "outcome": outcome, "direct_total": _fmt(direct_total), "indirect_total": _fmt(indirect_total),
+            "combined_total": _fmt(direct_total + indirect_total), "mapped_spend": _fmt(mapped_spend),
+            "total_spend": _fmt(total_spend),
+            "coverage_pct": _fmt(100 * mapped_spend / total_spend) if total_spend else "0",
+            "unit": next((r["unit"] for r in available if r["unit"]), ""),
+            "aggregation_boundary": boundary, "double_counting_status": double_counting,
+            "caveats": str(config.get("portfolio_policy", {}).get("caveat", "gross upstream requirements may overlap across Tier-1 observations")),
+        })
 
     qa = []
     dimensions = {
@@ -284,20 +357,36 @@ def compose_figaro_attribution(cohort: list[dict[str, str]], direct_rows: list[d
                 avail = [sid for sid in ids if rows_o[sid]["status"] == "available"]
                 mapped = sum(_f(by_id[sid]["spend_eur"], "qa mapped") for sid in avail)
                 indirect = sum(_f(rows_o[sid]["indirect_value"], "qa indirect") for sid in avail if rows_o[sid]["indirect_value"])
-                qa.append({"breakdown_dimension": dim, "breakdown_value": value, "outcome": outcome, "observations": str(len(ids)), "mapped_observations": str(len(avail)), "held_out_observations": str(len(ids)-len(avail)), "spend": _fmt(spend), "mapped_spend": _fmt(mapped), "coverage_pct": _fmt(100*mapped/spend) if spend else "0", "indirect_value": _fmt(indirect), "unit": next((rows_o[s]["unit"] for s in avail if rows_o[s]["unit"]), ""), "sensitivity_case": str(config.get("sensitivity_case", "primary_2023"))})
+                qa.append({
+                    "breakdown_dimension": dim, "breakdown_value": value, "outcome": outcome,
+                    "observations": str(len(ids)), "mapped_observations": str(len(avail)),
+                    "held_out_observations": str(len(ids)-len(avail)), "spend": _fmt(spend),
+                    "mapped_spend": _fmt(mapped), "coverage_pct": _fmt(100*mapped/spend) if spend else "0",
+                    "indirect_value": _fmt(indirect),
+                    "unit": next((rows_o[s]["unit"] for s in avail if rows_o[s]["unit"]), ""),
+                    "sensitivity_case": str(config.get("sensitivity_case", "primary_2023")),
+                })
 
     eligible = {r["selection_id"] for r in mapping if r["calculation_eligibility"] == "eligible"}
     eligible_spend = sum(_f(r["spend_eur"], "eligible spend") for r in cohort if r["selection_id"] in eligible)
     summary = {
         "source": meta, "mapping_observations": len(mapping), "mapped_eligible_observations": len(eligible),
         "held_out_observations": len(mapping)-len(eligible), "total_spend_eur": _fmt(total_spend),
-        "mapped_eligible_spend_eur": _fmt(eligible_spend), "mapped_eligible_spend_coverage_pct": _fmt(100*eligible_spend/total_spend) if total_spend else "0",
-        "figaro_nodes": len(model["nodes"]), "leontief_inverse_max_reconciliation_error": _fmt(model["max_inverse_error"]),
+        "mapped_eligible_spend_eur": _fmt(eligible_spend),
+        "mapped_eligible_spend_coverage_pct": _fmt(100*eligible_spend/total_spend) if total_spend else "0",
+        "figaro_nodes": len(model["nodes"]),
+        "leontief_inverse_max_reconciliation_error": _fmt(model["max_inverse_error"]),
         "upstream_operator": "L_minus_I", "direct_source": "accepted_SKO_038", "direct_recalculated": False,
         "aggregation_boundary": boundary, "double_counting_status": double_counting,
         "sensitivity_case": str(config.get("sensitivity_case", "primary_2023")),
         "trade_holdouts": sum(r["valuation_case"] == "trade_purchase_value_not_comparable" for r in mapping),
         "unmapped_observations": sum(r["mapping_status"] == "unmapped" for r in mapping),
     }
-    summary["determinism_fingerprint"] = hashlib.sha256(json.dumps({"mapping": mapping, "outcomes": outcomes, "contributions": contributions, "portfolio": portfolio, "qa": qa, "summary": summary}, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    summary["determinism_fingerprint"] = hashlib.sha256(
+        json.dumps(
+            {"mapping": mapping, "outcomes": outcomes, "contributions": contributions,
+             "portfolio": portfolio, "qa": qa, "summary": summary},
+            sort_keys=True, separators=(",", ":"),
+        ).encode()
+    ).hexdigest()
     return {"mapping": mapping, "outcomes": outcomes, "contributions": contributions, "portfolio": portfolio, "qa": qa, "summary": summary}
