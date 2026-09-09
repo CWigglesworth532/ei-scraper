@@ -13,10 +13,10 @@ import direct_economic_coefficients as de
 
 COVERAGE_MATRIX_FIELDS = [
     "country", "model_sector_code", "model_sector_label", "reference_year",
-    "denominator_route", "denominator_concept_code", "outcome_code", "outcome_label",
-    "numerator_concept_code", "availability_status", "availability_reason",
-    "coefficient_value", "coefficient_unit", "coefficient_id", "source_family",
-    "source_dataset_ids", "source_release_versions", "source_release_dates",
+    "denominator_route", "denominator_concept_code", "denominator_currency",
+    "outcome_code", "outcome_label", "numerator_concept_code", "availability_status",
+    "availability_reason", "coefficient_value", "coefficient_unit", "coefficient_id",
+    "source_family", "source_dataset_ids", "source_release_versions", "source_release_dates",
 ]
 
 YEAR_DIAGNOSTIC_FIELDS = [
@@ -51,6 +51,7 @@ def build_coverage(source_rows: list[dict[str, str]], *, config: Mapping[str, An
             "reference_year": row["reference_year"],
             "denominator_route": _route_name(row["model_sector_code"], config),
             "denominator_concept_code": row["denominator_concept_code"],
+            "denominator_currency": row["denominator_currency"],
             "outcome_code": row["outcome_code"],
             "outcome_label": row["outcome_label"],
             "numerator_concept_code": row["numerator_concept_code"],
