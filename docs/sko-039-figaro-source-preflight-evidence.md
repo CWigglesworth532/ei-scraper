@@ -2,7 +2,7 @@
 
 **Task:** SKO-039 — Prototype indirect supply-chain attribution using FIGARO  
 **Stage:** source preflight / source-contract validation  
-**Status:** Implementation added; synthetic source-contract validation available; live FIGARO package not yet frozen or pilot-run.  
+**Status:** Implemented and synthetically tested; governing FIGARO 2026 / reference-year 2023 source candidate identified; live source not yet normalized or pilot-run.  
 **Branch:** `sko-039-figaro-indirect-attribution`
 
 ## Purpose
@@ -11,9 +11,46 @@ Establish the governed source boundary required before running the SKO-039 indir
 
 SKO-038 remains authoritative for direct attribution. This preflight does not alter SKO-036, SKO-037 or SKO-038 methodology or outputs.
 
+## Governing source decision
+
+Owner approved changing the governing FIGARO release from the 2025 edition to the current 2026 edition while retaining reference year 2023.
+
+The reason is source governance and reproducibility rather than a methodological preference for one vintage. The 2026 release is the current official FIGARO release available from Eurostat/CIRCABC and still provides the required 2023 reference year. Annual FIGARO releases may revise historical values, so edition and reference year are both frozen explicitly.
+
+The primary source is therefore:
+
+- organisation: Eurostat;
+- product: FIGARO inter-country supply-use and input-output tables (`naio_10_fcp`);
+- edition: 2026;
+- reference year: 2023;
+- table: industry-by-industry inter-country input-output;
+- classification: NACE Rev. 2 A*64;
+- valuation: basic prices;
+- currency/unit: nominal EUR million.
+
+If the 2025/2023 matrix is subsequently recovered, it is reserved as a release-revision sensitivity rather than the governing primary source.
+
+## Live matrix candidate identified
+
+The owner supplied the official CIRCABC file:
+
+`matrix_eu-ic-io_ind-by-ind_26ed_2023.csv`
+
+Read-only inspection of that supplied file established:
+
+- file size: 49,350,189 bytes;
+- SHA-256: `030ff10a923a5d8949e4d05c16c7f2260d59c91f23d74f9529a029ba9249d7a5`;
+- 3,206 data rows plus header;
+- 3,451 columns;
+- 3,200 country×industry rows, consistent with 50 country/region nodes × 64 industries;
+- row/column node labels such as `AL_A01`, `DE_C20` and `FR_M72`;
+- bottom accounting rows including `W2_D1`, `W2_D29X39` and `W2_B2A3G`.
+
+This confirms that the supplied file is the correct native FIGARO industry-by-industry ICIO matrix type required for the Leontief model. It does not yet constitute completed live-source validation because the native matrix has not yet been normalized into the governed transaction/output/satellite contract and passed through the validator.
+
 ## External source findings confirmed during preflight
 
-Eurostat currently publishes FIGARO inter-country supply, use and input-output tables annually and exposes:
+Eurostat publishes FIGARO inter-country supply, use and input-output tables annually and exposes:
 
 - industry-by-industry input-output tables;
 - product-by-product input-output tables;
@@ -22,15 +59,15 @@ Eurostat currently publishes FIGARO inter-country supply, use and input-output t
 - country/region coverage including the EU, United Kingdom, major trading partners and Rest of World;
 - a 2026 edition covering 2010-2024.
 
-Eurostat also publishes environmental footprints based on FIGARO. The environmental database explicitly states that the 2025-edition GHG footprint results use Leontief-type modelling with air-emissions accounts and FIGARO industry-by-industry inter-country input-output tables. The 2023 greenhouse-gas footprint result remains available.
+Eurostat also publishes environmental footprints based on FIGARO. Existing environmental-footprint metadata available during this work documents a FIGARO-based 2023 GHG result, but compatibility of the environmental satellite with the governing 2026 FIGARO matrix must be demonstrated before GHG is treated as live-source validated. No 2025-aligned environmental satellite is silently treated as 2026-aligned.
 
-These findings support the already approved SKO-039 v1 decision to use an industry-by-industry architecture and a 2023 reference year. They do not by themselves constitute file-level live-source validation.
+These findings support the approved SKO-039 v1 decision to use an industry-by-industry architecture and a 2023 reference year. Publication-level evidence does not replace file-level validation.
 
 ## Source governance implemented
 
 `figaro_source_validation.py` adds a hard gate between downloaded/normalized FIGARO source material and `figaro_indirect_attribution.py`.
 
-A locally frozen package must contain:
+A locally frozen normalized package must contain:
 
 - `figaro_source_manifest.json`;
 - one normalized transaction file;
@@ -110,38 +147,40 @@ A valid source package receives a deterministic package fingerprint derived from
 
 Pilot execution is permitted only after all manifest, checksum and normalized-contract gates pass.
 
-## Tests added
+## Test execution evidence
 
-`tests/test_figaro_source_validation.py` covers:
+The repository environment executed:
 
-1. valid frozen-package acceptance and deterministic fingerprint;
-2. reference-year mismatch rejection;
-3. FIGARO-edition mismatch rejection;
-4. checksum mismatch rejection;
-5. unknown transaction-node rejection;
-6. duplicate output-node rejection;
-7. negative normalized transaction rejection;
-8. unsupported satellite-outcome rejection;
-9. missing governed satellite-outcome rejection;
-10. partial employment coverage reported rather than imputed;
-11. identical package fingerprint determinism.
+```text
+python -m py_compile figaro_indirect_attribution.py figaro_source_validation.py
+python -m unittest tests.test_figaro_indirect_attribution tests.test_figaro_source_validation -v
+```
 
-The connected GitHub environment does not provide an execution runner and no repository CI status was attached to the commit at the time of this preflight. Therefore these tests are **implemented but not claimed as executed evidence in this document**. They must be run in the repository environment before this source-validation patch is treated as tested.
+Result on 2026-09-09:
+
+- indirect-attribution behavioural tests: 14/14 passed;
+- source-validation behavioural tests: 11/11 passed;
+- combined: 25 tests in 0.038 seconds;
+- result: `OK`;
+- no failures or errors.
+
+This is synthetic/repository-level test evidence. It is not live FIGARO source validation.
 
 ## Live-source validation still required
 
 Before the governed pilot may run:
 
-1. download the exact FIGARO industry-by-industry 2025-edition / 2023 source table from the official Eurostat/CIRCABC release;
-2. record original official filename, retrieval route and SHA-256;
-3. normalize the inter-industry transactions and output vector into the contract above;
-4. obtain/freeze the aligned 2023 GHG satellite source and record exact source lineage;
-5. obtain/freeze the employment source and identify where global origin-node coverage is incomplete;
-6. build the normalized satellite file without zero-filling missing origin nodes;
-7. create `figaro_source_manifest.json`;
-8. run `figaro_source_validation.py` and retain the JSON source-validation summary;
-9. run `py_compile`, the SKO-039 focused suites and relevant SKO-038 regression;
-10. only then run the 35-observation live pilot.
+1. freeze the supplied official `matrix_eu-ic-io_ind-by-ind_26ed_2023.csv` locally under the SKO-039 source area and verify its SHA-256;
+2. normalize the 3,200×3,200 inter-industry block into the governed transaction contract;
+3. derive the country×industry output vector from the native FIGARO accounting structure and reconcile it against matrix accounting identities;
+4. derive the GVA satellite from the native FIGARO value-added/accounting rows where supported and document the exact accounting construction;
+5. obtain/freeze a 2023 GHG satellite and demonstrate compatibility with the governing 2026 matrix before using it as a primary indirect outcome;
+6. obtain/freeze the employment source and identify where global origin-node coverage is incomplete;
+7. create the normalized satellite file without zero-filling missing origin nodes;
+8. create `figaro_source_manifest.json` binding governing source files and checksums;
+9. run `figaro_source_validation.py` and retain the JSON source-validation summary;
+10. rerun focused SKO-039 tests plus relevant SKO-038 regression;
+11. only then run the 35-observation live pilot.
 
 ## Current status assessment
 
@@ -149,24 +188,30 @@ Before the governed pilot may run:
 
 - FIGARO indirect-attribution core implemented on the SKO-039 branch.
 - Governed FIGARO source-freeze/source-contract validator implemented.
-- Source-validation behavioural tests added.
-- Eurostat publication architecture and current source availability reviewed.
+- Source-validation behavioural tests implemented.
+- Focused SKO-039 synthetic test suites executed successfully, 25/25.
+- Governing source decision updated to FIGARO 2026 edition / reference year 2023.
+- Official 2026/2023 native industry-by-industry matrix candidate identified and structurally inspected.
 
 ### Evidence created
 
+- `figaro_indirect_attribution.py`;
 - `figaro_source_validation.py`;
+- `tests/test_figaro_indirect_attribution.py`;
 - `tests/test_figaro_source_validation.py`;
-- this source-preflight evidence record.
+- local executed test output, 25/25 passed;
+- supplied native matrix filename, dimensions and SHA-256 recorded in this evidence note.
 
-### Decisions preserved
+### Decisions made/preserved
 
 - industry-by-industry FIGARO architecture;
 - 2023 primary reference year;
-- 2025 FIGARO edition as primary release for the initial prototype, with 2026/2023 reserved as release-revision sensitivity;
+- 2026 FIGARO edition as governing primary release;
+- 2025/2023 reserved as release-revision sensitivity if recovered;
 - exact country×A*64 mapping only;
 - no inheritance of the SKO-037 FR P85→P environmental-direct fallback;
 - G45/G46/G47 primary-case valuation hold-out;
-- GVA and GHG primary indirect outcomes;
+- GVA and GHG primary indirect outcomes, subject to live source validation;
 - employment as coverage-qualified secondary outcome;
 - `L-I` upstream operator;
 - no induced household effects;
@@ -174,19 +219,22 @@ Before the governed pilot may run:
 
 ### Status changes
 
-None to accepted programme milestones.
+SKO-039 is now legitimately **Implemented / Tested** at synthetic repository level.
 
-SKO-039 remains **not accepted** and must not be described as live-source validated or live-pilot validated yet.
+SKO-039 remains **not live-source validated, not live-pilot validated, not complete and not accepted**.
+
+No accepted SKO-036, SKO-037 or SKO-038 status has changed.
 
 ### Unresolved items
 
-- exact official FIGARO 2025/2023 file freeze and checksum;
-- normalization of the actual FIGARO flat/matrix source structure;
-- aligned GHG source freeze;
+- native FIGARO 2026/2023 matrix normalizer;
+- output-vector and GVA accounting extraction/reconciliation from the native matrix;
+- aligned/compatible 2023 GHG satellite validation for the 2026 matrix;
 - defensible global employment-node coverage;
-- source-validator test execution in repository environment;
+- complete normalized package manifest and source-validator run;
+- relevant SKO-038 regression after live-source adapter work;
 - live 35-observation pilot.
 
 ### Recommended next task
 
-Run the new source-validation tests locally, then freeze and normalize the actual official FIGARO 2025/2023 files and execute the source-validation gate. If that passes, proceed directly to the governed 35-observation SKO-039 pilot without changing SKO-038 direct outputs.
+Implement and test a native FIGARO 2026 matrix normalizer against the supplied `matrix_eu-ic-io_ind-by-ind_26ed_2023.csv`. The normalizer should emit governed transactions and output/GVA structures without altering the source file, reconcile dimensions and accounting totals, and preserve the source SHA-256. Once that live matrix gate passes, proceed to GHG/employment satellite construction and the governed source-package validator.
