@@ -250,6 +250,32 @@ def extract_sbs(country: str, start_year: int, end_year: int, retrieved_at: str)
     return rows
 
 
+def constrain_to_a64_model(rows: list[dict[str, str]]) -> tuple[list[dict[str, str]], int]:
+    """Keep SBS observations only where their NACE code is present in nama_10_a64.
+
+    sbs_ovw_act exposes substantially more detailed NACE levels than the governed
+    A*64 coefficient model. Copying those detailed source codes into model_sector_code
+    silently creates thousands of pseudo-model sectors and denominator-missing groups.
+    The national-accounts A*64 extract is therefore the authoritative per-country model
+    sector vocabulary for this build. Source codes remain unchanged for retained rows.
+    """
+    a64_by_country: dict[str, set[str]] = {}
+    for row in rows:
+        if row["source_dataset_id"] == "nama_10_a64":
+            a64_by_country.setdefault(row["country"], set()).add(row["model_sector_code"])
+    kept: list[dict[str, str]] = []
+    dropped = 0
+    for row in rows:
+        if row["source_dataset_id"] != "sbs_ovw_act":
+            kept.append(row)
+            continue
+        if row["model_sector_code"] in a64_by_country.get(row["country"], set()):
+            kept.append(row)
+        else:
+            dropped += 1
+    return kept, dropped
+
+
 def write_csv(rows: Iterable[dict[str, str]], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as handle:
@@ -280,6 +306,8 @@ def main() -> int:
                 rows.extend(fn(country, args.start_year, args.end_year, retrieved_at))
             except Exception as exc:  # keep partial authoritative extraction inspectable
                 errors.append({"country": country, "dataset": name, "error": f"{type(exc).__name__}: {exc}"})
+    raw_rows = len(rows)
+    rows, sbs_rows_dropped_non_a64 = constrain_to_a64_model(rows)
     rows.sort(key=lambda r: (r["country"], r["source_dataset_id"], r["model_sector_code"], r["reference_year"], r["concept_code"]))
     write_csv(rows, args.output)
     summary = {
@@ -287,7 +315,10 @@ def main() -> int:
         "countries_requested": args.countries,
         "start_year": args.start_year,
         "end_year": args.end_year,
+        "raw_rows_retrieved": raw_rows,
         "rows_written": len(rows),
+        "sbs_rows_dropped_non_a64": sbs_rows_dropped_non_a64,
+        "model_sector_pairs": len({(r["country"], r["model_sector_code"]) for r in rows}),
         "countries_with_rows": sorted({r["country"] for r in rows}),
         "datasets_with_rows": sorted({r["source_dataset_id"] for r in rows}),
         "concepts_with_rows": sorted({r["concept_code"] for r in rows}),
