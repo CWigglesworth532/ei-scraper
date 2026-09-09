@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SKO-036 normalized direct economic source record",
+  "type": "object",
+  "required": [
+    "source_record_id", "source_family", "source_organisation", "source_dataset_id",
+    "source_release_version", "source_release_date", "retrieved_at", "source_url", "licence",
+    "country", "source_classification", "source_classification_version", "source_sector_code",
+    "source_sector_label", "model_classification", "model_classification_version", "model_sector_code",
+    "model_sector_label", "reference_year", "concept_code", "concept_label", "value", "normalized_unit",
+    "currency", "price_basis", "status_flag", "source_fingerprint", "schema_version"
+  ],
+  "additionalProperties": false
+}
