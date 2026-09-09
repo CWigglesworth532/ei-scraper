@@ -48,12 +48,12 @@ def source_row(
 
 def denominator(
     *, country="BE", sector="M72", value="50", currency="EUR", concept="P1",
-    family="national_accounts", label="Synthetic sector",
+    family="national_accounts", label="Synthetic sector", status="published",
 ):
     return source_row(
         country=country, sector=sector, family=family, concept=concept, value=value,
         unit="million_currency", currency=currency, dataset="synthetic-denominator",
-        label=label,
+        label=label, status=status,
     )
 
 
@@ -113,6 +113,18 @@ class DirectEnvironmentalCoefficientTests(unittest.TestCase):
         rec = result["coefficients"][0]
         self.assertEqual(rec["qa_status"], "held_out")
         self.assertEqual(rec["qa_reason"], "source_status_not_usable")
+
+    def test_provisional_and_estimated_numeric_flags_are_usable_and_preserved(self):
+        for flag in ("p", "e"):
+            with self.subTest(flag=flag):
+                result = env.build_coefficients(
+                    [source_row(value="100"), denominator(value="50", status=flag)],
+                    config=CONFIG, generated_at="2026-09-09T00:00:00Z",
+                )
+                rec = result["coefficients"][0]
+                self.assertEqual(rec["qa_status"], "calculated")
+                self.assertEqual(Decimal(rec["coefficient_value"]), Decimal("2"))
+                self.assertEqual(rec["source_status_flags"], f"{flag}|published")
 
     def test_wrong_environmental_unit_is_held_out(self):
         result = env.build_coefficients(
