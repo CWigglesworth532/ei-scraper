@@ -13,7 +13,7 @@ class FigaroIndirectAttributionTests(unittest.TestCase):
         self.config = {
             "figaro_source": {
                 "product_id": "naio_10_fcp",
-                "edition": "2025",
+                "edition": "2026",
                 "reference_year": 2023,
                 "table_type": "industry_by_industry_icio",
             },
@@ -162,7 +162,7 @@ class FigaroIndirectAttributionTests(unittest.TestCase):
         result = figaro.compose_figaro_attribution(self.cohort, self.direct, self.transactions, self.outputs, self.satellites, self.config)
         row = next(r for r in result["outcomes"] if r["selection_id"] == "OBS-1" and r["outcome"] == "GVA")
         self.assertEqual(row["source_product"], "naio_10_fcp")
-        self.assertEqual(row["source_edition"], "2025")
+        self.assertEqual(row["source_edition"], "2026")
         self.assertEqual(row["reference_year"], "2023")
         self.assertEqual(row["table_type"], "industry_by_industry_icio")
 
