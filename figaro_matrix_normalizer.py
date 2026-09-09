@@ -48,7 +48,7 @@ def split_node(label: str) -> Node:
     if "_" not in value:
         raise ValueError(f"invalid FIGARO industry node label: {label!r}")
     country, sector = value.split("_", 1)
-    if len(country) != 2 or not country.isalpha() or not sector:
+    if not country or not all(ch.isalnum() for ch in country) or not sector:
         raise ValueError(f"invalid FIGARO industry node label: {label!r}")
     return Node(value, country.upper(), sector.upper())
 
