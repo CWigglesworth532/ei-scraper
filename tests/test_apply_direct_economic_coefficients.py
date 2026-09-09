@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import unittest
+from decimal import Decimal
 from pathlib import Path
 
 import direct_economic_coefficients as de
@@ -11,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CFG = ROOT / "config/direct_economic_coefficients.yaml"
 
 
-def cell(country, sector, outcome, status="available", value="0.5", unit="currency_gva_per_currency_denominator", route="default"):
+def cell(country, sector, outcome, status="available", value="0.5", unit="currency_gva_per_currency_denominator", route="default", denominator_currency="EUR"):
     return {
         "country": country,
         "model_sector_code": sector,
@@ -19,6 +20,7 @@ def cell(country, sector, outcome, status="available", value="0.5", unit="curren
         "reference_year": "2023",
         "denominator_route": route,
         "denominator_concept_code": "P1" if route == "default" else "TURNOVER",
+        "denominator_currency": denominator_currency,
         "outcome_code": outcome,
         "outcome_label": outcome,
         "numerator_concept_code": outcome,
@@ -61,22 +63,19 @@ class ApplyDirectEconomicCoefficientTests(unittest.TestCase):
 
     def test_more_specific_sector_beats_broader_aggregate(self):
         sector, _, status, reason = app.map_nace_to_model_sector(
-            "18.12",
-            {"C16-C18": "Wood paper printing", "C18": "Printing"},
+            "18.12", {"C16-C18": "Wood paper printing", "C18": "Printing"},
         )
         self.assertEqual((sector, status, reason), ("C18", "mapped", "division_to_most_specific_a64_sector"))
 
     def test_more_specific_partial_range_beats_broader_aggregate(self):
         sector, _, status, reason = app.map_nace_to_model_sector(
-            "70.22",
-            {"M69-M71": "Professional services", "M69_M70": "Legal accounting management consultancy"},
+            "70.22", {"M69-M71": "Professional services", "M69_M70": "Legal accounting management consultancy"},
         )
         self.assertEqual((sector, status, reason), ("M69_M70", "mapped", "division_to_most_specific_a64_sector"))
 
     def test_equal_specificity_stays_unresolved(self):
         sector, _, status, reason = app.map_nace_to_model_sector(
-            "71.20",
-            {"M71": "Technical services A", "X71": "Technical services B"},
+            "71.20", {"M71": "Technical services A", "X71": "Technical services B"},
         )
         self.assertEqual((sector, status, reason), ("", "unresolved", "ambiguous_equally_specific_a64_sectors"))
 
@@ -91,6 +90,26 @@ class ApplyDirectEconomicCoefficientTests(unittest.TestCase):
         emp = next(r for r in result["outcomes"] if r["outcome_code"] == "EMPLOYMENT_PERSONS")
         self.assertEqual((gva["modelled_value"], gva["modelled_unit"]), ("800000", "EUR"))
         self.assertEqual((emp["modelled_value"], emp["modelled_unit"]), ("10", "persons"))
+        self.assertEqual(emp["fx_status"], "same_currency")
+
+    def test_gbp_absolute_outcome_uses_2023_ecb_rate(self):
+        matrix = [cell(
+            "UK", "M72", "EMPLOYMENT_PERSONS", value="3.814785010548293",
+            unit="persons_per_million_currency_denominator", denominator_currency="GBP",
+        )]
+        cohort = [{
+            "selection_id": "uk1", "supplier": "University", "client": "Bayer", "country": "UK",
+            "spend_eur": "1000000", "proposed_nace_rev2_code": "72.1", "nace_level": "group",
+            "nace_description": "R&D", "treatment": "single",
+        }]
+        result = app.apply_coefficients(cohort, matrix, config=self.cfg)
+        row = result["outcomes"][0]
+        expected = Decimal("3.814785010548293") * Decimal("0.86979")
+        self.assertAlmostEqual(float(row["modelled_value"]), float(expected), places=10)
+        self.assertEqual(row["fx_status"], "converted_annual_average")
+        self.assertEqual(row["fx_rate"], "0.86979")
+        self.assertEqual(row["fx_reference_year"], "2023")
+        self.assertEqual(row["fx_source_series_key"], "EXR.A.GBP.EUR.SP00.A")
 
     def test_not_applicable_not_counted_as_held_out(self):
         cohort = [{
@@ -132,6 +151,7 @@ class ApplyDirectEconomicCoefficientTests(unittest.TestCase):
         result = app.apply_coefficients(cohort, self.matrix, config=self.cfg)
         self.assertEqual(result["summary"]["coefficient_reference_year"], "2023")
         self.assertFalse(result["summary"]["automatic_year_fallback_enabled"])
+        self.assertEqual(result["summary"]["currency_normalisation_status"], "owner_approved_2026-09-09")
         self.assertEqual(result["summary"]["spend_year_present_observations"], 0)
 
 
