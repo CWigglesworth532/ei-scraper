@@ -1,0 +1,94 @@
+schema_version: sko-039-figaro-indirect-attribution-v1
+status: owner_approved_for_implementation_2026-09-09
+
+figaro_source:
+  organisation: Eurostat
+  product_id: naio_10_fcp
+  product_name: FIGARO inter-country supply-use and input-output tables
+  edition: "2025"
+  reference_year: 2023
+  table_type: industry_by_industry_icio
+  classification: NACE Rev. 2 A*64
+  valuation: basic_prices
+  currency: EUR
+  unit: million_eur
+  release_lineage_rule: freeze exact edition, reference year, source filename and sha256 before pilot execution
+  sensitivity_release:
+    edition: "2026"
+    reference_year: 2023
+    purpose: release_revision_sensitivity_only
+
+mapping_policy:
+  version: figaro-nace-a64-v1
+  source: NACE Rev. 2 A*64 / FIGARO industry-by-industry
+  mode: exact_country_sector_node_only
+  preserve_original_nace: true
+  preserve_sko038_model_sector: true
+  silent_parent_fallback: false
+  approved_fallbacks: []
+  explicit_sector_mapping: {}
+  environmental_direct_fallback_inheritance: prohibited
+  note: SKO-037 FR P85 to P environmental-direct fallback must not be inherited by SKO-039.
+
+valuation_policy:
+  primary_spend_currency: EUR
+  shock_interpretation: procurement_spend_as_basic_price_output_proxy
+  claim_boundary: modelled_upstream_economic_activity_associated_with_purchased_activity
+  trade_sector_holdouts: [G45, G46, G47]
+  trade_primary_case_rule: hold_out
+  trade_reason: purchase value through wholesale/retail is not comparable with FIGARO industry output because trade industry output is margin-based
+  no_silent_price_rebasing: true
+  no_silent_fx_rebasing: true
+
+matrix_policy:
+  technical_coefficients: A_equals_Z_times_inverse_output_diagonal
+  leontief_inverse: L_equals_inverse_I_minus_A
+  indirect_operator: L_minus_I
+  induced_household_effects: excluded
+  country_propagation: preserve_origin_country_and_industry
+
+outcomes:
+  GVA:
+    label: Indirect upstream gross value added
+    source: FIGARO value-added vector / industry output
+    unit: EUR
+    coverage_scope: all_figaro_nodes_with_governing_gva_satellite
+    status: primary
+  GHG:
+    label: Indirect upstream greenhouse gas emissions
+    source: Eurostat env_ac_ghgfp aligned to FIGARO 2025 edition / 2023 result
+    unit: tCO2e
+    coverage_scope: all_figaro_nodes_with_governing_ghg_satellite
+    status: primary
+  EMPLOYMENT_PERSONS:
+    label: Indirect upstream employment persons-equivalent
+    source: Eurostat nama_10_a64_e where coverage is defensible
+    unit: persons-equivalent
+    coverage_scope: coverage_qualified_no_missing_origin_nodes
+    status: secondary
+
+satellite_sources:
+  gva:
+    governing_source: FIGARO industry-by-industry value-added/output vectors
+    reference_year: 2023
+  ghg:
+    governing_source: env_ac_ghgfp
+    edition_alignment: FIGARO_2025
+    reference_year: 2023
+    qa_source: env_ac_ainah_r2
+  employment:
+    governing_source: nama_10_a64_e
+    concept: EMP_DC
+    unit: THS_PER
+    reference_year: 2023
+    missing_origin_rule: hold_out_outcome_not_zero
+
+portfolio_policy:
+  aggregation_boundary: gross_observation_based_upstream_requirements
+  double_counting_status: not_network_deduplicated
+  caveat: gross modelled upstream requirements may overlap where one Tier-1 supplier's modelled upstream purchases correspond to another Tier-1 supplier in the same client portfolio
+  unique_total_claim_permitted: false
+  direct_source: accepted_SKO_038_only
+  direct_recalculation: prohibited
+
+sensitivity_case: primary_2023_figaro_2025_trade_holdout
