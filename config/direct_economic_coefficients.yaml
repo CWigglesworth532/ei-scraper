@@ -38,6 +38,12 @@ outcomes:
     coefficient_unit: currency_employee_compensation_per_currency_denominator
     scale: "1"
     required_numerator_unit: million_currency
+  LABOUR_COSTS:
+    label: Employee benefits / employment costs
+    numerator_concept_code: LABOUR_COSTS
+    coefficient_unit: currency_labour_costs_per_currency_denominator
+    scale: "1"
+    required_numerator_unit: million_currency
   PRODUCTION_TAXES_NET:
     label: Other taxes less subsidies on production
     numerator_concept_code: D29X39
@@ -82,6 +88,12 @@ accounting_identity:
   right_concept_code_b: B1G
   absolute_tolerance: "0.000001"
 
+year_fallback_policy:
+  automatic_fallback_enabled: false
+  status: deferred_pending_real_coverage_matrix
+  rule: exact_year_only_until_owner_approves_bounded_fallback
+  required_evidence: country_x_sector_x_year_x_outcome_coverage_matrix
+
 source_catalogue:
   eurostat_national_accounts:
     organisation: Eurostat
@@ -97,6 +109,19 @@ source_catalogue:
     classification: NACE Rev. 2 A*64
     retrieval_route: Eurostat dissemination API / bulk download
     licence: Eurostat reuse policy with source acknowledgement
+    raw_dimensions:
+      concept: na_item
+      unit: unit
+    normalization_map:
+      "EMP_DC|THS_PER":
+        concept_code: EMP_PERSONS
+        normalized_unit: persons
+        scale: "1000"
+      "EMP_DC|THS_HW":
+        concept_code: EMP_HOURS
+        normalized_unit: hours
+        scale: "1000"
+    mapping_rule: na_item_and_unit_required
   eurostat_capital:
     organisation: Eurostat
     dataset_id: nama_10_a64_p5
@@ -104,6 +129,19 @@ source_catalogue:
     classification: NACE Rev. 2 A*64
     retrieval_route: Eurostat dissemination API / bulk download
     licence: Eurostat reuse policy with source acknowledgement
+  eurostat_sbs:
+    organisation: Eurostat
+    dataset_id: sbs_ovw_act
+    intended_concepts: [TURNOVER, B1G, LABOUR_COSTS, EMP_PERSONS]
+    source_measure_mapping:
+      NETTUR_MEUR: TURNOVER
+      AV_MEUR: B1G
+      EXPN_SAL_BEN_MEUR: LABOUR_COSTS
+      EMP_NR: EMP_PERSONS
+    classification: NACE Rev. 2
+    retrieval_route: Eurostat dissemination API / bulk download
+    licence: Eurostat reuse policy with source acknowledgement
+    semantic_note: LABOUR_COSTS is not ESA D1 compensation of employees
   ons_supply_use:
     organisation: Office for National Statistics
     dataset_id: input-output-supply-and-use-tables
@@ -111,24 +149,41 @@ source_catalogue:
     classification: UK SIC 2007 mapped transparently to NACE Rev. 2-compatible model sectors
     retrieval_route: ONS published xlsx release
     licence: Open Government Licence
-  ons_employment:
-    organisation: Office for National Statistics
-    dataset_id: employment-multipliers-and-effects-in-the-uk
-    intended_concepts: [EMP_FTE]
-    classification: UK SIC 2007 / ONS industry aggregation
-    retrieval_route: ONS published xlsx release
-    licence: Open Government Licence
-  eurostat_sbs:
-    organisation: Eurostat
-    dataset_id: sbs_ovw_act
-    intended_concepts: [TURNOVER, B1G, D1, EMP_PERSONS]
-    classification: NACE Rev. 2
-    retrieval_route: Eurostat dissemination API / bulk download
-    licence: Eurostat reuse policy with source acknowledgement
   ons_abs:
     organisation: Office for National Statistics
     dataset_id: annual-business-survey
-    intended_concepts: [TURNOVER, B1G, D1, EMP_PERSONS]
-    classification: UK SIC 2007
+    intended_concepts: [TURNOVER, B1G, LABOUR_COSTS, EMP_PERSONS]
+    classification: UK SIC 2007 mapped transparently to NACE Rev. 2-compatible model sectors
     retrieval_route: ONS published xlsx/csv release
     licence: Open Government Licence
+    semantic_note: ABS approximate GVA and employment costs must retain business-statistics semantics and must not be relabelled as ESA B1G or D1 without an explicit compatibility decision
+  ons_bres:
+    organisation: Office for National Statistics
+    dataset_id: business-register-and-employment-survey
+    intended_concepts: [EMP_PERSONS]
+    classification: UK SIC 2007 mapped transparently to NACE Rev. 2-compatible model sectors
+    retrieval_route: ONS published xlsx release
+    licence: Open Government Licence
+  ons_gfcf:
+    organisation: Office for National Statistics
+    dataset_id: annual-gross-fixed-capital-formation-by-industry-and-asset
+    intended_concepts: [P51G]
+    classification: UK SIC 2007 mapped transparently to NACE Rev. 2-compatible model sectors
+    retrieval_route: ONS published xlsx release
+    licence: Open Government Licence
+  ons_capital_stocks:
+    organisation: Office for National Statistics
+    dataset_id: capital-stocks-and-fixed-capital-consumption
+    intended_concepts: [P51C]
+    classification: UK SIC 2007 / published ONS industry aggregation; exact model-sector coverage must be verified before use
+    retrieval_route: ONS published xlsx release
+    licence: Open Government Licence
+  ons_ashe_hours:
+    organisation: Office for National Statistics
+    dataset_id: annual-survey-of-hours-and-earnings-industry-tables
+    intended_concepts: []
+    classification: UK SIC 2007
+    retrieval_route: ONS published xlsx release
+    licence: Open Government Licence
+    governance_status: deferred_not_comparable_v1
+    semantic_note: paid employee hours are not automatically comparable with Eurostat national-accounts total hours worked
