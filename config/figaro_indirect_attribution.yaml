@@ -5,7 +5,7 @@ figaro_source:
   organisation: Eurostat
   product_id: naio_10_fcp
   product_name: FIGARO inter-country supply-use and input-output tables
-  edition: "2025"
+  edition: "2026"
   reference_year: 2023
   table_type: industry_by_industry_icio
   classification: NACE Rev. 2 A*64
@@ -14,7 +14,7 @@ figaro_source:
   unit: million_eur
   release_lineage_rule: freeze exact edition, reference year, source filename and sha256 before pilot execution
   sensitivity_release:
-    edition: "2026"
+    edition: "2025"
     reference_year: 2023
     purpose: release_revision_sensitivity_only
 
@@ -56,7 +56,7 @@ outcomes:
     status: primary
   GHG:
     label: Indirect upstream greenhouse gas emissions
-    source: Eurostat env_ac_ghgfp aligned to FIGARO 2025 edition / 2023 result
+    source: Eurostat environmental-account satellite to be validated for compatibility with FIGARO 2026 / reference year 2023 before live pilot
     unit: tCO2e
     coverage_scope: all_figaro_nodes_with_governing_ghg_satellite
     status: primary
@@ -73,7 +73,7 @@ satellite_sources:
     reference_year: 2023
   ghg:
     governing_source: env_ac_ghgfp
-    edition_alignment: FIGARO_2025
+    edition_alignment: pending_validation_against_FIGARO_2026
     reference_year: 2023
     qa_source: env_ac_ainah_r2
   employment:
@@ -91,4 +91,4 @@ portfolio_policy:
   direct_source: accepted_SKO_038_only
   direct_recalculation: prohibited
 
-sensitivity_case: primary_2023_figaro_2025_trade_holdout
+sensitivity_case: primary_2023_figaro_2026_trade_holdout
