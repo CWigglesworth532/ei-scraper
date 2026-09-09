@@ -23,7 +23,7 @@ YEAR_DIAGNOSTIC_FIELDS = [
     "country", "model_sector_code", "model_sector_label", "outcome_code", "outcome_label",
     "available_years", "earliest_available_year", "latest_available_year",
     "available_year_count", "year_span", "internal_gap_years", "internal_gap_count",
-    "fallback_policy_status",
+    "reference_year_policy_status", "primary_reference_year",
 ]
 
 
@@ -70,7 +70,9 @@ def build_coverage(source_rows: list[dict[str, str]], *, config: Mapping[str, An
     matrix.sort(key=lambda r: (r["country"], r["model_sector_code"], int(r["reference_year"]), r["outcome_code"]))
 
     diagnostics: list[dict[str, str]] = []
-    fallback_status = config.get("year_fallback_policy", {}).get("status", "not_configured")
+    year_policy = config.get("reference_year_policy", {})
+    policy_status = str(year_policy.get("status", "not_configured"))
+    primary_year = str(year_policy.get("primary_reference_year", ""))
     for (country, sector, outcome), rows in sorted(by_key.items()):
         usable = sorted({int(r["reference_year"]) for r in rows if r["availability_status"] == "available"})
         gaps: list[int] = []
@@ -90,11 +92,15 @@ def build_coverage(source_rows: list[dict[str, str]], *, config: Mapping[str, An
             "year_span": str(usable[-1] - usable[0] + 1) if usable else "0",
             "internal_gap_years": "|".join(map(str, gaps)),
             "internal_gap_count": str(len(gaps)),
-            "fallback_policy_status": fallback_status,
+            "reference_year_policy_status": policy_status,
+            "primary_reference_year": primary_year,
         })
 
     applicable = [r for r in matrix if r["availability_status"] != "not_applicable"]
     available_count = sum(r["availability_status"] == "available" for r in matrix)
+    primary_year_rows = [r for r in matrix if r["reference_year"] == primary_year]
+    primary_year_applicable = [r for r in primary_year_rows if r["availability_status"] != "not_applicable"]
+    primary_year_available = sum(r["availability_status"] == "available" for r in primary_year_rows)
     summary = {
         "matrix_records": len(matrix),
         "applicable_records": len(applicable),
@@ -106,7 +112,14 @@ def build_coverage(source_rows: list[dict[str, str]], *, config: Mapping[str, An
         "sector_count": len({(r["country"], r["model_sector_code"]) for r in matrix}),
         "outcome_count": len({r["outcome_code"] for r in matrix}),
         "diagnostic_rows": len(diagnostics),
-        "fallback_policy_status": fallback_status,
+        "reference_year_policy_status": policy_status,
+        "primary_reference_year": primary_year,
+        "primary_year_matrix_records": len(primary_year_rows),
+        "primary_year_applicable_records": len(primary_year_applicable),
+        "primary_year_available_records": primary_year_available,
+        "primary_year_applicable_availability_rate": (
+            primary_year_available / len(primary_year_applicable) if primary_year_applicable else 0
+        ),
         "coefficient_qa": result["qa"],
     }
     return {"coverage_matrix": matrix, "year_diagnostics": diagnostics, "summary": summary}
