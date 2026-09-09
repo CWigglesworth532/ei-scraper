@@ -46,10 +46,14 @@ def source_row(
     }
 
 
-def denominator(*, country="BE", sector="M72", value="50", currency="EUR", concept="P1", family="national_accounts"):
+def denominator(
+    *, country="BE", sector="M72", value="50", currency="EUR", concept="P1",
+    family="national_accounts", label="Synthetic sector",
+):
     return source_row(
         country=country, sector=sector, family=family, concept=concept, value=value,
         unit="million_currency", currency=currency, dataset="synthetic-denominator",
+        label=label,
     )
 
 
