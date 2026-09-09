@@ -17,8 +17,6 @@ from itertools import product
 from pathlib import Path
 from typing import Any, Iterable
 
-import yaml
-
 API_BASE = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data"
 MODEL_CLASSIFICATION = "NACE"
 MODEL_CLASSIFICATION_VERSION = "Rev. 2 A*64"
@@ -194,8 +192,11 @@ def extract_employment(country: str, start_year: int, end_year: int, retrieved_a
 
 def extract_capital(country: str, start_year: int, end_year: int, retrieved_at: str) -> list[dict[str, str]]:
     dataset = "nama_10_a64_p5"
+    # nama_10_a64_p5 is cross-classified by detailed asset type. P51G therefore
+    # returns multiple rows per industry/year unless the total-fixed-assets member
+    # is selected explicitly. N11G is Eurostat's "Total fixed assets (gross)" code.
     payload, url = fetch_json(dataset, {
-        "geo": country, "na_item": "P51G", "unit": "CP_MEUR",
+        "geo": country, "na_item": "P51G", "unit": "CP_MEUR", "asset10": "N11G",
         "sinceTimePeriod": str(start_year), "untilTimePeriod": str(end_year),
     })
     sector_labels = _labels(payload, "nace_r2")
@@ -204,6 +205,8 @@ def extract_capital(country: str, start_year: int, end_year: int, retrieved_at: 
         sector = raw.get("nace_r2", "")
         year = raw.get("time", raw.get("TIME_PERIOD", ""))
         if not sector or not year:
+            continue
+        if raw.get("asset10", "N11G") != "N11G":
             continue
         rows.append(_base_record(
             dataset=dataset, payload=payload, url=url, country=country,
