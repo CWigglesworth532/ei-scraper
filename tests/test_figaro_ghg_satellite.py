@@ -27,6 +27,12 @@ class FigaroGhgSatelliteTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
+    def _set_outputs(self, rows):
+        with self.outputs.open("w", newline="", encoding="utf-8") as handle:
+            w = csv.writer(handle, lineterminator="\n")
+            w.writerow(["country", "sector", "output_million_eur"])
+            w.writerows(rows)
+
     def _write(self, rows):
         with self.source.open("w", newline="", encoding="utf-8") as handle:
             w = csv.writer(handle, lineterminator="\n")
@@ -113,6 +119,54 @@ class FigaroGhgSatelliteTests(unittest.TestCase):
         self.assertEqual(mapped, "FIGW1")
         self.assertEqual(mode, "label_map")
 
+    def test_row_group_bridge_allocates_by_output_and_conserves_emissions(self):
+        self._set_outputs([
+            ["FIGW1", "A01", "300"],
+            ["AL", "A01", "100"],
+            ["ME", "A01", "100"],
+            ["MK", "A01", "200"],
+            ["RS", "A01", "300"],
+        ])
+        self._write([["WRL_REST", "A01", "WORLD", "TOTAL", "A", "THS_T", "2023", "10"]])
+        result = ghg.build_ghg_satellite(self.source, self.outputs, self.output, self.diag)
+        with self.output.open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+        values = {(r["country"], r["sector"]): float(r["value"]) for r in rows}
+        self.assertEqual(set(values), {("FIGW1", "A01"), ("AL", "A01"), ("ME", "A01"), ("MK", "A01"), ("RS", "A01")})
+        self.assertAlmostEqual(sum(values.values()), 10000.0, places=9)
+        self.assertAlmostEqual(values[("FIGW1", "A01")], 3000.0)
+        self.assertAlmostEqual(values[("AL", "A01")], 1000.0)
+        self.assertAlmostEqual(values[("MK", "A01")], 2000.0)
+        bridge = result["source_geography_alignment"]
+        self.assertEqual(bridge["aligned_sectors"], 1)
+        self.assertAlmostEqual(bridge["allocation_difference_tco2e"], 0.0, places=9)
+
+    def test_row_group_bridge_produces_common_sector_intensity(self):
+        outputs = [
+            ["FIGW1", "A01", "300"],
+            ["AL", "A01", "100"],
+            ["ME", "A01", "200"],
+        ]
+        self._set_outputs(outputs)
+        self._write([["WRL_REST", "A01", "WORLD", "TOTAL", "A", "THS_T", "2023", "6"]])
+        ghg.build_ghg_satellite(self.source, self.outputs, self.output)
+        with self.output.open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+        output_by_country = {r[0]: float(r[2]) for r in outputs}
+        intensities = [float(r["value"]) / output_by_country[r["country"]] for r in rows]
+        self.assertTrue(all(abs(x - intensities[0]) < 1e-12 for x in intensities))
+
+    def test_bridge_does_not_fill_genuinely_absent_source_geography(self):
+        self._set_outputs([
+            ["FIGW1", "A01", "300"],
+            ["AL", "A01", "100"],
+            ["XK", "C20", "50"],
+        ])
+        self._write([["WRL_REST", "A01", "WORLD", "TOTAL", "A", "THS_T", "2023", "4"]])
+        result = ghg.build_ghg_satellite(self.source, self.outputs, self.output)
+        self.assertIn("XK_C20", result["coverage"]["missing_node_labels"])
+        self.assertEqual(result["coverage"]["missing_nodes"], 1)
+
     def test_missing_figaro_nodes_are_reported_not_zero_filled(self):
         self._write([["DE", "C20", "WORLD", "TOTAL", "A", "THS_T", "2023", "1"]])
         result = ghg.build_ghg_satellite(self.source, self.outputs, self.output)
@@ -175,6 +229,7 @@ class FigaroGhgSatelliteTests(unittest.TestCase):
         second = ghg.build_ghg_satellite(self.source, self.outputs, self.output)
         self.assertEqual(first["source"]["sha256"], second["source"]["sha256"])
         self.assertEqual(first["coverage"], second["coverage"])
+        self.assertEqual(first["source_geography_alignment"], second["source_geography_alignment"])
 
 
 if __name__ == "__main__":
