@@ -69,9 +69,9 @@ class DirectEconomicCoefficientTests(unittest.TestCase):
         self.assertEqual(row["denominator_concept_code"], "TURNOVER")
         self.assertEqual(Decimal(row["coefficient_value"]), Decimal("0.04"))
 
-    def test_12_trade_missing_business_stat_outcome_is_held_out(self):
+    def test_12_trade_incompatible_outcome_is_not_applicable(self):
         row = self.coef("DE", "G46", "PRODUCTION_TAXES_NET")
-        self.assertEqual((row["qa_status"], row["qa_reason"], row["coefficient_value"]), ("held_out", "numerator_missing", ""))
+        self.assertEqual((row["qa_status"], row["qa_reason"], row["coefficient_value"]), ("not_applicable", "outcome_not_applicable_to_denominator_route", ""))
 
     def test_13_trade_na_output_never_substitutes_for_turnover(self):
         row = self.coef("DE", "G46", "GVA")
@@ -157,6 +157,22 @@ class DirectEconomicCoefficientTests(unittest.TestCase):
                 subprocess.run(args, check=True)
                 outputs.append(tuple((p / name).read_bytes() for name in ("source.csv", "coeff.csv", "coverage.csv", "qa.json")))
         self.assertEqual(outputs[0], outputs[1])
+
+    def test_26_operating_surplus_can_be_derived_with_component_provenance(self):
+        rows = copy.deepcopy(self.source)
+        direct = next(r for r in rows if r["country"] == "FR" and r["concept_code"] == "B2A3G")
+        rows.remove(direct)
+        net = copy.deepcopy(next(r for r in rows if r["country"] == "FR" and r["concept_code"] == "P51C"))
+        net["concept_code"] = "B2A3N"
+        net["concept_label"] = "Net operating surplus and mixed income"
+        net["value"] = "8"
+        rows.append(net)
+        result = de.build_coefficients(rows, config=self.cfg, generated_at=NOW)
+        row = self.coef_from(result, "FR", "M72", "OPERATING_SURPLUS_MIXED_INCOME")
+        self.assertEqual(Decimal(row["coefficient_value"]), Decimal("0.13"))
+        self.assertIn("B2A3N", row["transformation_method"])
+        self.assertEqual(len(row["source_record_ids"].split("|")), 3)
+        self.assertEqual(result["qa"]["derived_numerator_records"], 1)
 
 
 if __name__ == "__main__":
