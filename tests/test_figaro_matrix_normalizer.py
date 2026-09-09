@@ -46,6 +46,10 @@ class FigaroMatrixNormalizerTests(unittest.TestCase):
         result = normalizer.normalize_matrix(self.source, tx, out, gva, diag)
         return result, tx, out, gva, diag
 
+    def test_split_node_accepts_figaro_rest_of_world_code(self):
+        node = normalizer.split_node("FIGW1_C20")
+        self.assertEqual((node.country, node.sector), ("FIGW1", "C20"))
+
     def test_discovers_industry_block_and_final_demand(self):
         self._write_matrix(self._valid_rows())
         s = normalizer.discover_structure(self.source)
