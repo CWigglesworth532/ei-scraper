@@ -24,6 +24,25 @@ reference_year_policy:
   spend_year_matching_required: false
   provenance_requirement: record_spend_year_and_coefficient_reference_year_separately
 
+source_status_policy:
+  mode: explicit_usable_flags
+  usable_flags:
+    - ""
+    - ok
+    - available
+    - published
+    - normal
+    - p
+    - e
+  interpretation:
+    p: provisional_numeric_value_usable_with_flag_preserved
+    e: estimated_numeric_value_usable_with_flag_preserved
+  blocked_examples:
+    - confidential
+    - suppressed
+    - unavailable
+  rule: numeric provisional and estimated values may be used; suppression, confidentiality and unavailability remain held out
+
 denominator_routes:
   default:
     source_family: national_accounts
