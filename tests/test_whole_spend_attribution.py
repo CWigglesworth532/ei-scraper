@@ -47,7 +47,7 @@ class WholeSpendAttributionTests(unittest.TestCase):
         }
 
     @staticmethod
-    def _outcome(
+    def _make_outcome(
         selection_id, country, sector, code, *, status="available", reason="coefficient_applied",
         route="default", value="1", unit="EUR", coeff="0.5", coeff_unit="currency_per_currency_denominator",
         coeff_id=None, source_sector=None, specificity=None, source="synthetic_dataset",
@@ -99,9 +99,9 @@ class WholeSpendAttributionTests(unittest.TestCase):
             self._obs("OBS-003", "", "held_out_nace_unresolved", "nace_code_missing", available="0", held="1"),
         ]
         outcomes = [
-            self._outcome("OBS-001", "FR", "M72", "B1G", value="500000", unit="EUR"),
-            self._outcome("OBS-002", "DE", "G46", "B1G", route="trade_turnover", value="400000", unit="EUR"),
-            self._outcome("OBS-003", "IT", "", "B1G", status="held_out", reason="nace_code_missing", value=""),
+            self._make_outcome("OBS-001", "FR", "M72", "B1G", value="500000", unit="EUR"),
+            self._make_outcome("OBS-002", "DE", "G46", "B1G", route="trade_turnover", value="400000", unit="EUR"),
+            self._make_outcome("OBS-003", "IT", "", "B1G", status="held_out", reason="nace_code_missing", value=""),
         ]
         return {
             "observations": observations,
@@ -116,15 +116,15 @@ class WholeSpendAttributionTests(unittest.TestCase):
             self._obs("OBS-003", "", "held_out_unresolved_activity", "nace_code_missing", available="0", held="1"),
         ]
         outcomes = [
-            self._outcome(
+            self._make_outcome(
                 "OBS-001", "FR", "M72", "GHG", value="10", unit="tCO2e", coeff="10",
                 coeff_unit="tco2e_per_million_currency_denominator",
             ),
-            self._outcome(
+            self._make_outcome(
                 "OBS-002", "DE", "G46", "GHG", route="trade_turnover", value="20", unit="tCO2e", coeff="10",
                 coeff_unit="tco2e_per_million_currency_denominator",
             ),
-            self._outcome("OBS-003", "IT", "", "GHG", status="held_out", reason="model_mapping_nace_code_missing", value=""),
+            self._make_outcome("OBS-003", "IT", "", "GHG", status="held_out", reason="model_mapping_nace_code_missing", value=""),
         ]
         return {
             "observations": observations,
