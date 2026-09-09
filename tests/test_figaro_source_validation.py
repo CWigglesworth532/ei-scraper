@@ -21,7 +21,7 @@ class FigaroSourceValidationTests(unittest.TestCase):
             "figaro_source": {
                 "organisation": "Eurostat",
                 "product_id": "naio_10_fcp",
-                "edition": "2025",
+                "edition": "2026",
                 "reference_year": 2023,
                 "table_type": "industry_by_industry_icio",
                 "classification": "NACE Rev. 2 A*64",
@@ -79,7 +79,7 @@ class FigaroSourceValidationTests(unittest.TestCase):
         manifest = {
             "organisation": "Eurostat",
             "product_id": "naio_10_fcp",
-            "edition": "2025",
+            "edition": "2026",
             "reference_year": 2023,
             "table_type": "industry_by_industry_icio",
             "classification": "NACE Rev. 2 A*64",
@@ -112,7 +112,7 @@ class FigaroSourceValidationTests(unittest.TestCase):
             source.validate_package(self.root, self.config_path)
 
     def test_manifest_edition_mismatch_is_rejected(self):
-        self._write_manifest(edition="2026")
+        self._write_manifest(edition="2025")
         with self.assertRaisesRegex(ValueError, "manifest/config mismatch"):
             source.validate_package(self.root, self.config_path)
 
