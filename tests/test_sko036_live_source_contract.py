@@ -61,11 +61,14 @@ class Sko036LiveSourceContractTests(unittest.TestCase):
         self.assertEqual(catalogue["ons_ashe_hours"]["governance_status"], "deferred_not_comparable_v1")
         self.assertEqual(catalogue["ons_ashe_hours"]["intended_concepts"], [])
 
-    def test_06_year_fallback_remains_disabled_pending_coverage(self):
-        policy = self.config["year_fallback_policy"]
-        self.assertFalse(policy["automatic_fallback_enabled"])
-        self.assertEqual(policy["status"], "deferred_pending_real_coverage_matrix")
-        self.assertEqual(policy["required_evidence"], "country_x_sector_x_year_x_outcome_coverage_matrix")
+    def test_06_reference_year_is_fixed_to_2023_without_fallback(self):
+        policy = self.config["reference_year_policy"]
+        self.assertEqual(policy["mode"], "fixed_release_year")
+        self.assertEqual(policy["primary_reference_year"], 2023)
+        self.assertFalse(policy["automatic_year_fallback_enabled"])
+        self.assertFalse(policy["spend_year_matching_required"])
+        self.assertEqual(policy["missing_2023_rule"], "hold_out_for_review")
+        self.assertEqual(policy["status"], "owner_approved_2026-09-09")
 
 
 if __name__ == "__main__":
