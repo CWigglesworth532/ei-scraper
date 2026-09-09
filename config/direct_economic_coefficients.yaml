@@ -80,6 +80,9 @@ outcomes:
     scale: "1"
     required_numerator_unit: persons
     applicable_routes: [default, trade_turnover]
+    numerator_source_family_order:
+      default: [national_accounts, business_statistics]
+      trade_turnover: [business_statistics]
   EMPLOYMENT_HOURS:
     label: Hours worked
     numerator_concept_code: EMP_HOURS
@@ -113,6 +116,28 @@ reference_year_policy:
   provenance_requirement: record_spend_year_and_coefficient_reference_year_separately
   missing_2023_rule: hold_out_for_review
   rationale: 2023 provides the most complete stable common-year coverage across Eurostat country x sector x outcome diagnostics while avoiding mixed-year coefficient releases
+
+currency_normalisation:
+  spend_currency: EUR
+  mode: fixed_reference_year_annual_average
+  reference_year: 2023
+  status: owner_approved_2026-09-09
+  monetary_ratio_rule: no_fx_dimensionless_ratio
+  absolute_unit_rule: convert_spend_to_denominator_currency_before_applying_coefficient
+  missing_rate_rule: hold_out_for_review
+  rate_quote_convention: denominator_currency_per_EUR
+  rates:
+    EUR:
+      rate: "1"
+      source_organisation: European Central Bank
+      source_series_key: euro_base_identity
+      source_url: ""
+    GBP:
+      rate: "0.86979"
+      source_organisation: European Central Bank
+      source_series_key: EXR.A.GBP.EUR.SP00.A
+      source_url: https://data.ecb.europa.eu/data/datasets/EXR/EXR.A.GBP.EUR.SP00.A
+      source_note: 2023 annual average pound sterling per euro
 
 source_catalogue:
   eurostat_national_accounts:
@@ -193,7 +218,7 @@ source_catalogue:
     dataset_id: annual-gross-fixed-capital-formation-by-industry-and-asset
     intended_concepts: [P51G]
     classification: UK SIC 2007 mapped transparently to NACE Rev. 2-compatible model sectors
-    retrieval_route: ONS published xlsx release
+    retrieval_route: ONS published xlsx/csv release
     licence: Open Government Licence
   ons_capital_stocks:
     organisation: Office for National Statistics
@@ -211,3 +236,10 @@ source_catalogue:
     licence: Open Government Licence
     governance_status: deferred_not_comparable_v1
     semantic_note: paid employee hours are not automatically comparable with Eurostat national-accounts total hours worked
+  ecb_exchange_rates:
+    organisation: European Central Bank
+    dataset_id: EXR
+    intended_concepts: [annual_average_reference_exchange_rate]
+    retrieval_route: ECB Data Portal
+    licence: ECB reuse terms
+    governance_note: use fixed coefficient reference year annual average rates quoted as denominator currency per EUR for absolute-unit outcomes only
