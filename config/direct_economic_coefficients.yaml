@@ -26,67 +26,82 @@ outcomes:
     coefficient_unit: currency_gva_per_currency_denominator
     scale: "1"
     required_numerator_unit: million_currency
+    applicable_routes: [default, trade_turnover]
   INTERMEDIATE_CONSUMPTION:
     label: Intermediate consumption
     numerator_concept_code: P2
     coefficient_unit: currency_intermediate_consumption_per_currency_denominator
     scale: "1"
     required_numerator_unit: million_currency
+    applicable_routes: [default]
   EMPLOYEE_COMPENSATION:
     label: Compensation of employees
     numerator_concept_code: D1
     coefficient_unit: currency_employee_compensation_per_currency_denominator
     scale: "1"
     required_numerator_unit: million_currency
+    applicable_routes: [default]
   LABOUR_COSTS:
     label: Employee benefits / employment costs
     numerator_concept_code: LABOUR_COSTS
     coefficient_unit: currency_labour_costs_per_currency_denominator
     scale: "1"
     required_numerator_unit: million_currency
+    applicable_routes: [trade_turnover]
   PRODUCTION_TAXES_NET:
     label: Other taxes less subsidies on production
     numerator_concept_code: D29X39
     coefficient_unit: currency_production_taxes_net_per_currency_denominator
     scale: "1"
     required_numerator_unit: million_currency
+    applicable_routes: [default]
   OPERATING_SURPLUS_MIXED_INCOME:
     label: Gross operating surplus and mixed income
     numerator_concept_code: B2A3G
     coefficient_unit: currency_operating_surplus_mixed_income_per_currency_denominator
     scale: "1"
     required_numerator_unit: million_currency
+    applicable_routes: [default]
+    derivation:
+      operation: sum
+      source_concept_codes: [B2A3N, P51C]
+      label: Gross operating surplus and mixed income derived as B2A3N + P51C
   CONSUMPTION_FIXED_CAPITAL:
     label: Consumption of fixed capital
     numerator_concept_code: P51C
     coefficient_unit: currency_consumption_fixed_capital_per_currency_denominator
     scale: "1"
     required_numerator_unit: million_currency
+    applicable_routes: [default]
   EMPLOYMENT_PERSONS:
     label: Persons employed
     numerator_concept_code: EMP_PERSONS
     coefficient_unit: persons_per_million_currency_denominator
     scale: "1"
     required_numerator_unit: persons
+    applicable_routes: [default, trade_turnover]
   EMPLOYMENT_HOURS:
     label: Hours worked
     numerator_concept_code: EMP_HOURS
     coefficient_unit: hours_per_million_currency_denominator
     scale: "1"
     required_numerator_unit: hours
+    applicable_routes: [default]
   GROSS_FIXED_CAPITAL_FORMATION:
     label: Gross fixed capital formation
     numerator_concept_code: P51G
     coefficient_unit: currency_gfcf_per_currency_denominator
     scale: "1"
     required_numerator_unit: million_currency
+    applicable_routes: [default]
 
 accounting_identity:
   source_family: national_accounts
   left_concept_code: P1
   right_concept_code_a: P2
   right_concept_code_b: B1G
-  absolute_tolerance: "0.000001"
+  absolute_tolerance: "0.1"
+  tolerance_basis: published_million_euro_rounding
 
 year_fallback_policy:
   automatic_fallback_enabled: false
@@ -98,7 +113,11 @@ source_catalogue:
   eurostat_national_accounts:
     organisation: Eurostat
     dataset_id: nama_10_a64
-    intended_concepts: [P1, P2, B1G, D1, D29X39, B2A3G, P51C]
+    intended_concepts: [P1, P2, B1G, D1, D29X39, B2A3N, P51C]
+    derived_concepts:
+      B2A3G:
+        formula: B2A3N + P51C
+        provenance_rule: retain_both_component_source_records
     classification: NACE Rev. 2 A*64
     retrieval_route: Eurostat dissemination API / bulk download
     licence: Eurostat reuse policy with source acknowledgement
