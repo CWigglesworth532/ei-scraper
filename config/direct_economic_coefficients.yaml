@@ -104,7 +104,7 @@ accounting_identity:
   right_concept_code_a: P2
   right_concept_code_b: B1G
   absolute_tolerance: "0.1"
-  tolerance_basis: published_million_euro_rounding
+  tolerance_basis: published_million_currency_rounding
 
 reference_year_policy:
   mode: fixed_release_year
@@ -194,10 +194,11 @@ source_catalogue:
   ons_supply_use:
     organisation: Office for National Statistics
     dataset_id: input-output-supply-and-use-tables
-    intended_concepts: [P1, P2, B1G, D1, D29X39, B2A3G, P51C]
+    intended_concepts_v1: [P1, P2, B1G]
     classification: UK SIC 2007 mapped transparently to NACE Rev. 2-compatible model sectors
     retrieval_route: ONS published xlsx release
     licence: Open Government Licence
+    governance_note: v1 live adapter currently proves UK SIC 72 / M72 only; additional ONS concepts and sectors require separate source-contract verification
   ons_abs:
     organisation: Office for National Statistics
     dataset_id: annual-business-survey
@@ -213,6 +214,7 @@ source_catalogue:
     classification: UK SIC 2007 mapped transparently to NACE Rev. 2-compatible model sectors
     retrieval_route: ONS published xlsx release
     licence: Open Government Licence
+    governance_note: total employment can be used as a business-statistics numerator against the governed output denominator where the route-specific source-family order permits it
   ons_gfcf:
     organisation: Office for National Statistics
     dataset_id: annual-gross-fixed-capital-formation-by-industry-and-asset
