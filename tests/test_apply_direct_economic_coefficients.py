@@ -59,6 +59,27 @@ class ApplyDirectEconomicCoefficientTests(unittest.TestCase):
         sector, _, status, _ = app.map_nace_to_model_sector("10.82", {"C10-C12": "Food etc"})
         self.assertEqual((sector, status), ("C10-C12", "mapped"))
 
+    def test_more_specific_sector_beats_broader_aggregate(self):
+        sector, _, status, reason = app.map_nace_to_model_sector(
+            "18.12",
+            {"C16-C18": "Wood paper printing", "C18": "Printing"},
+        )
+        self.assertEqual((sector, status, reason), ("C18", "mapped", "division_to_most_specific_a64_sector"))
+
+    def test_more_specific_partial_range_beats_broader_aggregate(self):
+        sector, _, status, reason = app.map_nace_to_model_sector(
+            "70.22",
+            {"M69-M71": "Professional services", "M69_M70": "Legal accounting management consultancy"},
+        )
+        self.assertEqual((sector, status, reason), ("M69_M70", "mapped", "division_to_most_specific_a64_sector"))
+
+    def test_equal_specificity_stays_unresolved(self):
+        sector, _, status, reason = app.map_nace_to_model_sector(
+            "71.20",
+            {"M71": "Technical services A", "X71": "Technical services B"},
+        )
+        self.assertEqual((sector, status, reason), ("", "unresolved", "ambiguous_equally_specific_a64_sectors"))
+
     def test_currency_and_persons_attribution(self):
         cohort = [{
             "selection_id": "1", "supplier": "X", "client": "Bayer", "country": "BE",
