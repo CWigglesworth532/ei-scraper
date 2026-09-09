@@ -1,0 +1,135 @@
+schema_version: sko-037-direct-environmental-source-v1
+coefficient_schema_version: sko-037-direct-environmental-coefficient-v1
+coefficient_release_version: v1-draft
+model_classification: NACE
+model_classification_version: "Rev. 2 A*64"
+
+boundary:
+  scope: direct_resident_unit_production_effects
+  ghg_protocol_equivalence: scope_1_direct_only
+  excludes:
+    - supplier_reported_emissions
+    - product_carbon_footprints
+    - client_scope_3_inventory
+    - territorial_emissions
+    - upstream_supply_chain_emissions
+    - consumption_footprints
+
+reference_year_policy:
+  mode: fixed_release_year
+  primary_reference_year: 2023
+  automatic_year_fallback_enabled: false
+  status: owner_approved_2026-09-09
+  missing_2023_rule: hold_out_for_review
+  spend_year_matching_required: false
+  provenance_requirement: record_spend_year_and_coefficient_reference_year_separately
+
+denominator_routes:
+  default:
+    source_family: national_accounts
+    denominator_concept_code: P1
+    method: output_basic_prices
+    compatibility_class: OUTPUT_PROXY_ACCEPTED
+    required_denominator_unit: million_currency
+  trade_turnover:
+    model_sector_codes: [G45, G46, G47]
+    source_family: business_statistics
+    denominator_concept_code: TURNOVER
+    method: turnover_revenue_basis
+    compatibility_class: TURNOVER_ROUTE_REQUIRED
+    required_denominator_unit: million_currency
+
+outcomes:
+  GHG:
+    label: Direct greenhouse gas emissions
+    numerator_source_family: environmental_accounts
+    numerator_concept_code: GHG
+    required_numerator_unit: tonne_co2e
+    coefficient_unit: tco2e_per_million_currency_denominator
+    scale: "1"
+    status: owner_approved_v1_headline
+
+granularity_fallback_policy:
+  status: owner_approved_2026-09-09
+  mode: explicit_approved_mapping_only
+  rules:
+    - exact_model_sector_attempted_first
+    - narrower_environmental_cell_must_be_structurally_unpublished
+    - unique_compatible_parent_required
+    - numerator_and_denominator_must_use_same_parent_sector
+    - reference_year_must_match_primary_reference_year
+    - denominator_route_must_not_change
+    - suppression_confidentiality_and_ordinary_missing_data_do_not_trigger_fallback
+    - purchased_activity_assignment_must_remain_unchanged
+    - coefficient_source_sector_and_lower_specificity_reason_must_be_disclosed
+  approved_mappings:
+    - country: FR
+      model_sector_code: P85
+      coefficient_source_sector_code: P
+      trigger: structurally_unpublished_exact_environmental_sector
+      reason: Eurostat env_ac_ainah_r2 does not publish P85 at the required granularity; owner approved P-sector environmental coefficient fallback on 2026-09-09
+      approved_by: owner
+      approved_date: 2026-09-09
+
+currency_normalisation:
+  spend_currency: EUR
+  mode: fixed_reference_year_annual_average
+  reference_year: 2023
+  status: inherited_from_accepted_sko_036
+  absolute_unit_rule: convert_spend_to_denominator_currency_before_applying_coefficient
+  missing_rate_rule: hold_out_for_review
+  rate_quote_convention: denominator_currency_per_EUR
+  rates:
+    EUR:
+      rate: "1"
+      source_organisation: European Central Bank
+      source_series_key: euro_base_identity
+      source_url: ""
+    GBP:
+      rate: "0.86979"
+      source_organisation: European Central Bank
+      source_series_key: EXR.A.GBP.EUR.SP00.A
+      source_url: https://data.ecb.europa.eu/data/datasets/EXR/EXR.A.GBP.EUR.SP00.A
+      source_note: 2023 annual average pound sterling per euro
+
+source_catalogue:
+  eurostat_ghg:
+    organisation: Eurostat
+    dataset_id: env_ac_ainah_r2
+    intended_concepts: [GHG]
+    unit_contract: normalize THS_T to tonne_co2e before coefficient construction
+    classification: NACE Rev. 2
+    boundary: residence_based_air_emissions_accounts
+    retrieval_route: Eurostat dissemination API / bulk download
+    licence: Eurostat reuse policy with source acknowledgement
+    qa_comparator_dataset_id: env_ac_aeint_r2
+    qa_comparator_rule: comparator_only_not_governing_source
+  ons_ghg:
+    organisation: Office for National Statistics
+    dataset_id: uk-environmental-accounts-atmospheric-emissions-greenhouse-gases-by-industry-and-gas
+    intended_concepts: [GHG]
+    release_date: 2026-06-05
+    reference_year_used: 2023
+    classification: UK SIC 2007 mapped transparently to NACE Rev. 2-compatible model sectors
+    boundary: direct_residence_based_emissions
+    retrieval_route: ONS published xlsx release, sheet GHG total
+    licence: Open Government Licence
+    governance_note: v1 live validation proves UK SIC 72 / M72 only; additional sectors require source-contract verification
+  eurostat_national_accounts_denominator:
+    organisation: Eurostat
+    dataset_id: nama_10_a64
+    intended_concepts: [P1]
+    classification: NACE Rev. 2 A*64
+    retrieval_route: reuse accepted SKO-036 denominator source rows
+  eurostat_sbs_denominator:
+    organisation: Eurostat
+    dataset_id: sbs_ovw_act
+    intended_concepts: [TURNOVER]
+    classification: NACE Rev. 2
+    retrieval_route: reuse accepted SKO-036 denominator source rows
+  ons_supply_use_denominator:
+    organisation: Office for National Statistics
+    dataset_id: input-output-supply-and-use-tables
+    intended_concepts: [P1]
+    classification: UK SIC 2007 mapped transparently to NACE Rev. 2-compatible model sectors
+    retrieval_route: reuse accepted SKO-036 denominator source rows
