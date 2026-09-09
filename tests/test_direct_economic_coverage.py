@@ -50,8 +50,10 @@ class DirectEconomicCoverageTests(unittest.TestCase):
         row = next(r for r in self.result["year_diagnostics"] if r["country"] == "FR" and r["outcome_code"] == "GVA")
         self.assertEqual((row["available_years"], row["internal_gap_count"]), ("2022|2023", "0"))
 
-    def test_06_fallback_stays_deferred(self):
-        self.assertEqual(self.result["summary"]["fallback_policy_status"], "deferred_pending_real_coverage_matrix")
+    def test_06_fixed_reference_year_policy_is_reported(self):
+        summary = self.result["summary"]
+        self.assertEqual(summary["reference_year_policy_status"], "owner_approved_2026-09-09")
+        self.assertEqual(summary["primary_reference_year"], "2023")
 
     def test_07_deterministic(self):
         first = cov.build_coverage(self.rows, config=self.cfg, generated_at=NOW)
@@ -75,6 +77,16 @@ class DirectEconomicCoverageTests(unittest.TestCase):
             if r["country"] == "FR" and r["model_sector_code"] == "M72" and r["outcome_code"] == "GVA"
         )
         self.assertEqual((fr_gva["availability_status"], fr_gva["availability_reason"]), ("held_out", "denominator_missing"))
+
+    def test_10_primary_year_summary_is_exact_year_only(self):
+        summary = self.result["summary"]
+        self.assertEqual(summary["primary_reference_year"], "2023")
+        expected_rows = [r for r in self.result["coverage_matrix"] if r["reference_year"] == "2023"]
+        expected_applicable = [r for r in expected_rows if r["availability_status"] != "not_applicable"]
+        expected_available = [r for r in expected_rows if r["availability_status"] == "available"]
+        self.assertEqual(summary["primary_year_matrix_records"], len(expected_rows))
+        self.assertEqual(summary["primary_year_applicable_records"], len(expected_applicable))
+        self.assertEqual(summary["primary_year_available_records"], len(expected_available))
 
 
 if __name__ == "__main__":
