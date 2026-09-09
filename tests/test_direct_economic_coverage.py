@@ -28,9 +28,9 @@ class DirectEconomicCoverageTests(unittest.TestCase):
                 extra.append(item)
         cls.result = cov.build_coverage(cls.rows + extra, config=cls.cfg, generated_at=NOW)
 
-    def test_01_matrix_has_available_and_held_out(self):
+    def test_01_matrix_has_available_held_out_and_not_applicable(self):
         statuses = {row["availability_status"] for row in self.result["coverage_matrix"]}
-        self.assertEqual(statuses, {"available", "held_out"})
+        self.assertEqual(statuses, {"available", "held_out", "not_applicable"})
 
     def test_02_trade_route_is_explicit(self):
         rows = [r for r in self.result["coverage_matrix"] if r["country"] == "DE" and r["model_sector_code"] == "G46"]
@@ -41,9 +41,9 @@ class DirectEconomicCoverageTests(unittest.TestCase):
         row = next(r for r in self.result["coverage_matrix"] if r["country"] == "DE" and r["outcome_code"] == "LABOUR_COSTS")
         self.assertEqual(row["availability_status"], "available")
 
-    def test_04_employee_compensation_trade_held_out(self):
+    def test_04_employee_compensation_trade_not_applicable(self):
         row = next(r for r in self.result["coverage_matrix"] if r["country"] == "DE" and r["outcome_code"] == "EMPLOYEE_COMPENSATION")
-        self.assertEqual((row["availability_status"], row["availability_reason"]), ("held_out", "numerator_missing"))
+        self.assertEqual((row["availability_status"], row["availability_reason"]), ("not_applicable", "outcome_not_applicable_to_denominator_route"))
 
     def test_05_year_diagnostics_cover_two_years(self):
         row = next(r for r in self.result["year_diagnostics"] if r["country"] == "FR" and r["outcome_code"] == "GVA")
@@ -56,6 +56,11 @@ class DirectEconomicCoverageTests(unittest.TestCase):
         first = cov.build_coverage(self.rows, config=self.cfg, generated_at=NOW)
         second = cov.build_coverage(list(reversed(self.rows)), config=self.cfg, generated_at=NOW)
         self.assertEqual(first, second)
+
+    def test_08_applicable_rate_excludes_not_applicable(self):
+        summary = self.result["summary"]
+        self.assertEqual(summary["applicable_records"], summary["available_records"] + summary["held_out_records"])
+        self.assertGreater(summary["not_applicable_records"], 0)
 
 
 if __name__ == "__main__":
