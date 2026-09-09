@@ -32,132 +32,18 @@ def _route_name(sector_code: str, config: Mapping[str, Any]) -> str:
     return name
 
 
-def _build_coefficients_fast(source_rows: list[dict[str, str]], *, config: Mapping[str, Any], generated_at: str) -> dict[str, Any]:
-    """Equivalent SKO-036 materialisation with pre-indexed group lookups.
-
-    The original builder is intentionally simple but performed a full normalized-row
-    scan once per country/sector/year group for fallback label rows. On live Eurostat
-    extracts this becomes quadratic enough to be operationally unusable. This version
-    preserves the same governed calculation contract while indexing both source-family
-    and all-family group rows once up front.
-    """
-    if not de.clean(generated_at):
-        raise ValueError("generated_at required")
-
-    normalized_rows, qa = de.normalize_source_rows(source_rows, config=config)
-    grouped: dict[tuple[str, str, str, str], list[dict[str, str]]] = defaultdict(list)
-    grouped_all: dict[tuple[str, str, str], list[dict[str, str]]] = defaultdict(list)
-    for row in normalized_rows:
-        grouped[(row["source_family"], row["country"], row["model_sector_code"], row["reference_year"])].append(row)
-        grouped_all[(row["country"], row["model_sector_code"], row["reference_year"])].append(row)
-
-    calculation_keys = sorted(grouped_all)
-    qa["groups"] = len(calculation_keys)
-    coefficient_rows: list[dict[str, Any]] = []
-    coverage_rows: list[dict[str, str]] = []
-    identity = config["accounting_identity"]
-
-    for group_key in calculation_keys:
-        country, sector_code, year = group_key
-        route_name, route = de._route_for_sector(sector_code, config)
-        qa["output_route_groups" if route_name == "default" else "trade_route_groups"] += 1
-        family_rows = grouped.get((route["source_family"], country, sector_code, year), [])
-        fallback_rows = grouped_all[group_key]
-
-        denominator = de._select_concept(family_rows, route["denominator_concept_code"]) if family_rows else None
-        denominator_problem = ""
-        if denominator is None:
-            qa["missing_denominator_groups"] += 1
-            denominator_problem = "denominator_missing"
-        elif de.dec(denominator["value"], "denominator") <= 0:
-            qa["nonpositive_denominator_groups"] += 1
-            denominator_problem = "denominator_nonpositive"
-
-        identity_rows = grouped.get((identity["source_family"], country, sector_code, year), [])
-        left = de._select_concept(identity_rows, identity["left_concept_code"]) if identity_rows else None
-        right_a = de._select_concept(identity_rows, identity["right_concept_code_a"]) if identity_rows else None
-        right_b = de._select_concept(identity_rows, identity["right_concept_code_b"]) if identity_rows else None
-        if left and right_a and right_b:
-            qa["accounting_identity_checks"] += 1
-            diff = abs(
-                de.dec(left["value"], "identity left")
-                - (de.dec(right_a["value"], "identity a") + de.dec(right_b["value"], "identity b"))
-            )
-            if diff > de.dec(identity["absolute_tolerance"], "identity tolerance"):
-                qa["accounting_identity_failures"] += 1
-
-        calc_count = 0
-        held_count = 0
-        for outcome_code, outcome in config["outcomes"].items():
-            numerator = de._select_concept(family_rows, outcome["numerator_concept_code"]) if family_rows else None
-            status, reason = "calculated", ""
-            if denominator_problem:
-                status, reason = "held_out", denominator_problem
-            elif numerator is None:
-                status, reason = "held_out", "numerator_missing"
-                qa["missing_numerator_records"] += 1
-            elif outcome.get("required_numerator_unit") and numerator["normalized_unit"] != outcome["required_numerator_unit"]:
-                status, reason = "held_out", "numerator_unit_incompatible"
-            elif route.get("required_denominator_unit") and denominator and denominator["normalized_unit"] != route["required_denominator_unit"]:
-                status, reason = "held_out", "denominator_unit_incompatible"
-
-            if status == "calculated":
-                calc_count += 1
-                qa["calculated_coefficients"] += 1
-            else:
-                held_count += 1
-                qa["held_out_coefficients"] += 1
-
-            coefficient_rows.append(de._coefficient_record(
-                group_key=group_key,
-                rows=family_rows or fallback_rows,
-                route=route,
-                outcome_code=outcome_code,
-                outcome=outcome,
-                denominator=denominator,
-                numerator=numerator,
-                config=config,
-                generated_at=generated_at,
-                qa_status=status,
-                qa_reason=reason,
-            ))
-
-        if calc_count == len(config["outcomes"]):
-            coverage_status, coverage_reason = "complete", ""
-        elif calc_count > 0:
-            coverage_status, coverage_reason = "partial", "one_or_more_outcomes_unavailable"
-        else:
-            coverage_status, coverage_reason = "unmodelled", denominator_problem or "all_numerators_missing"
-
-        coverage_rows.append({
-            "country": country,
-            "model_sector_code": sector_code,
-            "model_sector_label": (family_rows[0] if family_rows else fallback_rows[0])["model_sector_label"],
-            "reference_year": year,
-            "denominator_route": route_name,
-            "source_family": route["source_family"],
-            "denominator_concept_code": route["denominator_concept_code"],
-            "denominator_available": str(denominator is not None and not denominator_problem).lower(),
-            "outcomes_requested": str(len(config["outcomes"])),
-            "outcomes_calculated": str(calc_count),
-            "outcomes_held_out": str(held_count),
-            "coverage_status": coverage_status,
-            "coverage_reason": coverage_reason,
-        })
-
-    coefficient_rows.sort(key=lambda row: (row["country"], row["model_sector_code"], row["reference_year"], row["outcome_code"]))
-    coverage_rows.sort(key=lambda row: (row["country"], row["model_sector_code"], row["reference_year"]))
-    qa["coefficient_records"] = len(coefficient_rows)
-    return {"sources": normalized_rows, "coefficients": coefficient_rows, "coverage": coverage_rows, "qa": qa}
-
-
 def build_coverage(source_rows: list[dict[str, str]], *, config: Mapping[str, Any], generated_at: str) -> dict[str, Any]:
-    result = _build_coefficients_fast(source_rows, config=config, generated_at=generated_at)
+    result = de.build_coefficients(source_rows, config=config, generated_at=generated_at)
     matrix: list[dict[str, str]] = []
     by_key: dict[tuple[str, str, str], list[dict[str, str]]] = defaultdict(list)
 
     for row in result["coefficients"]:
-        status = "available" if row["qa_status"] == "calculated" else "held_out"
+        if row["qa_status"] == "calculated":
+            status = "available"
+        elif row["qa_status"] == "not_applicable":
+            status = "not_applicable"
+        else:
+            status = "held_out"
         rec = {
             "country": row["country"],
             "model_sector_code": row["model_sector_code"],
@@ -207,10 +93,15 @@ def build_coverage(source_rows: list[dict[str, str]], *, config: Mapping[str, An
             "fallback_policy_status": fallback_status,
         })
 
+    applicable = [r for r in matrix if r["availability_status"] != "not_applicable"]
+    available_count = sum(r["availability_status"] == "available" for r in matrix)
     summary = {
         "matrix_records": len(matrix),
-        "available_records": sum(r["availability_status"] == "available" for r in matrix),
+        "applicable_records": len(applicable),
+        "available_records": available_count,
         "held_out_records": sum(r["availability_status"] == "held_out" for r in matrix),
+        "not_applicable_records": sum(r["availability_status"] == "not_applicable" for r in matrix),
+        "applicable_availability_rate": available_count / len(applicable) if applicable else 0,
         "country_count": len({r["country"] for r in matrix}),
         "sector_count": len({(r["country"], r["model_sector_code"]) for r in matrix}),
         "outcome_count": len({r["outcome_code"] for r in matrix}),
