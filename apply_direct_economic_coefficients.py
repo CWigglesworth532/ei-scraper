@@ -11,7 +11,7 @@ import argparse
 import csv
 import json
 import re
-from collections import Counter, defaultdict
+from collections import Counter
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -28,11 +28,12 @@ OBSERVATION_FIELDS = [
 ]
 
 OUTCOME_FIELDS = [
-    "selection_id", "supplier", "client", "country", "spend_eur", "spend_year",
+    "selection_id", "supplier", "client", "country", "spend_eur", "spend_year", "spend_currency",
     "proposed_nace_rev2_code", "nace_level", "treatment", "model_sector_code",
     "model_sector_label", "coefficient_reference_year", "outcome_code", "outcome_label",
-    "denominator_route", "attribution_status", "attribution_reason", "coefficient_value",
-    "coefficient_unit", "coefficient_id", "modelled_value", "modelled_unit",
+    "denominator_route", "denominator_currency", "attribution_status", "attribution_reason",
+    "coefficient_value", "coefficient_unit", "coefficient_id", "modelled_value", "modelled_unit",
+    "fx_status", "fx_rate", "fx_reference_year", "fx_source_organisation", "fx_source_series_key",
     "source_family", "source_dataset_ids", "source_release_versions", "source_release_dates",
 ]
 
@@ -43,7 +44,7 @@ _REQUIRED_COHORT_FIELDS = {
 
 _REQUIRED_MATRIX_FIELDS = {
     "country", "model_sector_code", "model_sector_label", "reference_year",
-    "denominator_route", "outcome_code", "outcome_label", "availability_status",
+    "denominator_route", "denominator_currency", "outcome_code", "outcome_label", "availability_status",
     "availability_reason", "coefficient_value", "coefficient_unit", "coefficient_id",
     "source_family", "source_dataset_ids", "source_release_versions", "source_release_dates",
 }
@@ -83,11 +84,9 @@ def _division_from_nace(code: str) -> int | None:
     text = (code or "").strip().upper()
     if not text:
         return None
-    # Accept standard numeric class/group/division forms (94.11, 72.1, 72)
     m = re.search(r"(?<!\d)(\d{2})(?:\.|$)", text)
     if m:
         return int(m.group(1))
-    # Also accept already model-like codes such as M72 or C10-C12.
     m = re.search(r"[A-U](\d{2})", text)
     return int(m.group(1)) if m else None
 
@@ -103,14 +102,7 @@ def _sector_division_range(model_sector_code: str) -> tuple[int, int] | None:
 
 
 def map_nace_to_model_sector(nace_code: str, model_sectors: Mapping[str, str]) -> tuple[str, str, str, str]:
-    """Map a NACE code to the most specific compatible sector in the model vocabulary.
-
-    The Eurostat coefficient extract retains both detailed A*64 rows and some broader
-    published aggregates. When more than one model-sector span contains a NACE division,
-    the narrower span is the governed choice. A broader aggregate must not make a valid
-    detailed/division-level mapping look ambiguous. If two or more equally specific
-    candidates remain, the mapping is held out rather than guessed.
-    """
+    """Map a NACE code to the unique most-specific compatible model sector."""
     text = (nace_code or "").strip().upper()
     if not text:
         return "", "", "unresolved", "nace_code_missing"
@@ -124,9 +116,7 @@ def map_nace_to_model_sector(nace_code: str, model_sectors: Mapping[str, str]) -
     for sector, label in model_sectors.items():
         span = _sector_division_range(sector)
         if span and span[0] <= division <= span[1]:
-            width = span[1] - span[0]
-            candidates.append((width, sector, label))
-
+            candidates.append((span[1] - span[0], sector, label))
     if not candidates:
         return "", "", "unresolved", "no_a64_sector_for_division"
 
@@ -136,21 +126,65 @@ def map_nace_to_model_sector(nace_code: str, model_sectors: Mapping[str, str]) -
         sector, label = most_specific[0]
         reason = "division_to_a64_range" if len(candidates) == 1 else "division_to_most_specific_a64_sector"
         return sector, label, "mapped", reason
-
     return "", "", "unresolved", "ambiguous_equally_specific_a64_sectors"
 
 
-def _modelled_value(spend_eur: Decimal, coefficient: Decimal, coefficient_unit: str) -> tuple[str, str]:
+def _fx_details(config: Mapping[str, Any], denominator_currency: str, coefficient_unit: str) -> dict[str, str]:
+    policy = config.get("currency_normalisation", {})
+    spend_currency = str(policy.get("spend_currency", "EUR")).strip().upper()
+    denom_currency = (denominator_currency or "").strip().upper()
     unit = (coefficient_unit or "").strip()
-    if unit.startswith("persons_per_million_currency_denominator"):
-        value = spend_eur / Decimal("1000000") * coefficient
-        return format(value.normalize(), "f"), "persons"
-    if unit.startswith("hours_per_million_currency_denominator"):
-        value = spend_eur / Decimal("1000000") * coefficient
-        return format(value.normalize(), "f"), "hours"
+    base = {
+        "spend_currency": spend_currency,
+        "denominator_currency": denom_currency,
+        "fx_status": "",
+        "fx_rate": "",
+        "fx_reference_year": str(policy.get("reference_year", "")),
+        "fx_source_organisation": "",
+        "fx_source_series_key": "",
+    }
+    if unit.startswith("currency_"):
+        base["fx_status"] = "not_required_dimensionless_ratio"
+        base["fx_rate"] = "1"
+        return base
+    if not (unit.startswith("persons_per_million_currency_denominator") or unit.startswith("hours_per_million_currency_denominator")):
+        raise ValueError(f"Unsupported coefficient unit: {coefficient_unit!r}")
+    if not denom_currency:
+        base["fx_status"] = "missing_denominator_currency"
+        return base
+    rates = policy.get("rates", {})
+    rate_info = rates.get(denom_currency)
+    if not rate_info:
+        base["fx_status"] = "missing_fx_rate"
+        return base
+    rate = _decimal(rate_info.get("rate", ""), f"FX rate {denom_currency}")
+    if rate <= 0:
+        raise ValueError(f"FX rate for {denom_currency} must be positive")
+    base.update({
+        "fx_status": "same_currency" if denom_currency == spend_currency else "converted_annual_average",
+        "fx_rate": format(rate, "f"),
+        "fx_source_organisation": str(rate_info.get("source_organisation", "")),
+        "fx_source_series_key": str(rate_info.get("source_series_key", "")),
+    })
+    return base
+
+
+def _modelled_value(spend_eur: Decimal, coefficient: Decimal, coefficient_unit: str,
+                    denominator_currency: str, config: Mapping[str, Any]) -> tuple[str, str, dict[str, str]]:
+    unit = (coefficient_unit or "").strip()
+    fx = _fx_details(config, denominator_currency, unit)
     if unit.startswith("currency_"):
         value = spend_eur * coefficient
-        return format(value.normalize(), "f"), "EUR"
+        return format(value.normalize(), "f"), "EUR", fx
+    if fx["fx_status"] in {"missing_denominator_currency", "missing_fx_rate"}:
+        return "", "", fx
+    spend_in_denominator_currency = spend_eur * _decimal(fx["fx_rate"], "FX rate")
+    if unit.startswith("persons_per_million_currency_denominator"):
+        value = spend_in_denominator_currency / Decimal("1000000") * coefficient
+        return format(value.normalize(), "f"), "persons", fx
+    if unit.startswith("hours_per_million_currency_denominator"):
+        value = spend_in_denominator_currency / Decimal("1000000") * coefficient
+        return format(value.normalize(), "f"), "hours", fx
     raise ValueError(f"Unsupported coefficient unit: {coefficient_unit!r}")
 
 
@@ -211,6 +245,9 @@ def apply_coefficients(
     spend_with_any_available = Decimal("0")
     mapping_reasons = Counter()
     observation_statuses = Counter()
+    fx_adjusted_available_outcomes = 0
+
+    spend_currency = str(config.get("currency_normalisation", {}).get("spend_currency", "EUR")).strip().upper()
 
     for raw in cohort_rows:
         spend = _decimal(raw.get("spend_eur", ""), f"spend {raw.get('selection_id', '')}")
@@ -229,8 +266,14 @@ def apply_coefficients(
             reason = ""
             cell: dict[str, str] | None = None
             coeff_value = coeff_unit = coeff_id = route = ""
+            denominator_currency = ""
             modelled_value = modelled_unit = ""
             source_family = source_ids = source_versions = source_dates = ""
+            fx = {
+                "spend_currency": spend_currency, "denominator_currency": "", "fx_status": "",
+                "fx_rate": "", "fx_reference_year": "", "fx_source_organisation": "",
+                "fx_source_series_key": "",
+            }
 
             if mapping_status != "mapped":
                 reason = mapping_reason
@@ -242,13 +285,13 @@ def apply_coefficients(
                     reason = "coefficient_cell_missing"
                 else:
                     matrix_status = cell["availability_status"]
+                    denominator_currency = cell.get("denominator_currency", "")
                     if matrix_status == "not_applicable":
                         status = "not_applicable"
                         reason = cell["availability_reason"] or "outcome_not_applicable"
                     elif matrix_status == "held_out":
                         reason = cell["availability_reason"] or "coefficient_held_out"
                     elif matrix_status == "available":
-                        status = "available"
                         coeff_value = cell["coefficient_value"]
                         coeff_unit = cell["coefficient_unit"]
                         coeff_id = cell["coefficient_id"]
@@ -257,9 +300,17 @@ def apply_coefficients(
                         source_ids = cell["source_dataset_ids"]
                         source_versions = cell["source_release_versions"]
                         source_dates = cell["source_release_dates"]
-                        modelled_value, modelled_unit = _modelled_value(
-                            spend, _decimal(coeff_value, "coefficient"), coeff_unit
+                        modelled_value, modelled_unit, fx = _modelled_value(
+                            spend, _decimal(coeff_value, "coefficient"), coeff_unit,
+                            denominator_currency, config,
                         )
+                        if fx["fx_status"] in {"missing_denominator_currency", "missing_fx_rate"}:
+                            status = "held_out"
+                            reason = fx["fx_status"]
+                        else:
+                            status = "available"
+                            if fx["fx_status"] == "converted_annual_average":
+                                fx_adjusted_available_outcomes += 1
                     else:
                         raise ValueError(f"Unexpected matrix availability status: {matrix_status!r}")
 
@@ -287,6 +338,7 @@ def apply_coefficients(
                 "country": country,
                 "spend_eur": format(spend, "f"),
                 "spend_year": raw.get("spend_year", ""),
+                "spend_currency": spend_currency,
                 "proposed_nace_rev2_code": raw.get("proposed_nace_rev2_code", ""),
                 "nace_level": raw.get("nace_level", ""),
                 "treatment": raw.get("treatment", ""),
@@ -296,6 +348,7 @@ def apply_coefficients(
                 "outcome_code": outcome_code,
                 "outcome_label": outcome_label,
                 "denominator_route": route or (cell["denominator_route"] if cell else ""),
+                "denominator_currency": denominator_currency,
                 "attribution_status": status,
                 "attribution_reason": reason,
                 "coefficient_value": coeff_value,
@@ -303,6 +356,11 @@ def apply_coefficients(
                 "coefficient_id": coeff_id,
                 "modelled_value": modelled_value,
                 "modelled_unit": modelled_unit,
+                "fx_status": fx["fx_status"],
+                "fx_rate": fx["fx_rate"],
+                "fx_reference_year": fx["fx_reference_year"],
+                "fx_source_organisation": fx["fx_source_organisation"],
+                "fx_source_series_key": fx["fx_source_series_key"],
                 "source_family": source_family,
                 "source_dataset_ids": source_ids,
                 "source_release_versions": source_versions,
@@ -368,10 +426,15 @@ def apply_coefficients(
             "modelled_unit": stats["modelled_unit"],
         }
 
+    currency_policy = config.get("currency_normalisation", {})
     summary = {
         "coefficient_reference_year": ref_year,
         "reference_year_policy_status": policy.get("status", ""),
         "automatic_year_fallback_enabled": bool(policy.get("automatic_year_fallback_enabled")),
+        "currency_normalisation_status": currency_policy.get("status", "not_configured"),
+        "currency_normalisation_reference_year": str(currency_policy.get("reference_year", "")),
+        "spend_currency": spend_currency,
+        "fx_adjusted_available_outcomes": fx_adjusted_available_outcomes,
         "observations": len(cohort_rows),
         "total_spend_eur": format(total_spend, "f"),
         "observations_with_any_available_outcome": observations_with_any_available,
