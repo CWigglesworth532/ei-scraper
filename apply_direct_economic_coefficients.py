@@ -103,6 +103,14 @@ def _sector_division_range(model_sector_code: str) -> tuple[int, int] | None:
 
 
 def map_nace_to_model_sector(nace_code: str, model_sectors: Mapping[str, str]) -> tuple[str, str, str, str]:
+    """Map a NACE code to the most specific compatible sector in the model vocabulary.
+
+    The Eurostat coefficient extract retains both detailed A*64 rows and some broader
+    published aggregates. When more than one model-sector span contains a NACE division,
+    the narrower span is the governed choice. A broader aggregate must not make a valid
+    detailed/division-level mapping look ambiguous. If two or more equally specific
+    candidates remain, the mapping is held out rather than guessed.
+    """
     text = (nace_code or "").strip().upper()
     if not text:
         return "", "", "unresolved", "nace_code_missing"
@@ -111,17 +119,25 @@ def map_nace_to_model_sector(nace_code: str, model_sectors: Mapping[str, str]) -
     division = _division_from_nace(text)
     if division is None:
         return "", "", "unresolved", "nace_division_not_parseable"
-    candidates = []
+
+    candidates: list[tuple[int, str, str]] = []
     for sector, label in model_sectors.items():
         span = _sector_division_range(sector)
         if span and span[0] <= division <= span[1]:
-            candidates.append((sector, label))
-    candidates = sorted(set(candidates))
-    if len(candidates) == 1:
-        return candidates[0][0], candidates[0][1], "mapped", "division_to_a64_range"
+            width = span[1] - span[0]
+            candidates.append((width, sector, label))
+
     if not candidates:
         return "", "", "unresolved", "no_a64_sector_for_division"
-    return "", "", "unresolved", "ambiguous_a64_sector_for_division"
+
+    min_width = min(width for width, _, _ in candidates)
+    most_specific = sorted({(sector, label) for width, sector, label in candidates if width == min_width})
+    if len(most_specific) == 1:
+        sector, label = most_specific[0]
+        reason = "division_to_a64_range" if len(candidates) == 1 else "division_to_most_specific_a64_sector"
+        return sector, label, "mapped", reason
+
+    return "", "", "unresolved", "ambiguous_equally_specific_a64_sectors"
 
 
 def _modelled_value(spend_eur: Decimal, coefficient: Decimal, coefficient_unit: str) -> tuple[str, str]:
