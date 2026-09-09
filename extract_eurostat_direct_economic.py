@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""SKO-036 live Eurostat extraction and normalisation for direct economic coefficients.
-
-Fetches authoritative Eurostat datasets through the Statistics API and normalises
-selected observations into the governed SKO-036 source contract. No client data is
-read or written.
-"""
+"""SKO-036 live Eurostat extraction and normalisation for direct economic coefficients."""
 from __future__ import annotations
 
 import argparse
@@ -135,7 +130,7 @@ def extract_national_accounts(country: str, start_year: int, end_year: int, retr
         "B1G": ("Gross value added", "basic_prices"),
         "D1": ("Compensation of employees", "income_account"),
         "D29X39": ("Other taxes less subsidies on production", "income_account"),
-        "B2A3G": ("Gross operating surplus and mixed income", "income_account"),
+        "B2A3N": ("Net operating surplus and mixed income", "income_account"),
         "P51C": ("Consumption of fixed capital", "current_prices"),
     }
     rows: list[dict[str, str]] = []
@@ -192,9 +187,6 @@ def extract_employment(country: str, start_year: int, end_year: int, retrieved_a
 
 def extract_capital(country: str, start_year: int, end_year: int, retrieved_at: str) -> list[dict[str, str]]:
     dataset = "nama_10_a64_p5"
-    # nama_10_a64_p5 is cross-classified by detailed asset type. P51G therefore
-    # returns multiple rows per industry/year unless the total-fixed-assets member
-    # is selected explicitly. N11G is Eurostat's "Total fixed assets (gross)" code.
     payload, url = fetch_json(dataset, {
         "geo": country, "na_item": "P51G", "unit": "CP_MEUR", "asset10": "N11G",
         "sinceTimePeriod": str(start_year), "untilTimePeriod": str(end_year),
@@ -204,9 +196,7 @@ def extract_capital(country: str, start_year: int, end_year: int, retrieved_at: 
     for raw in flatten_jsonstat(payload):
         sector = raw.get("nace_r2", "")
         year = raw.get("time", raw.get("TIME_PERIOD", ""))
-        if not sector or not year:
-            continue
-        if raw.get("asset10", "N11G") != "N11G":
+        if not sector or not year or raw.get("asset10", "N11G") != "N11G":
             continue
         rows.append(_base_record(
             dataset=dataset, payload=payload, url=url, country=country,
@@ -251,14 +241,6 @@ def extract_sbs(country: str, start_year: int, end_year: int, retrieved_at: str)
 
 
 def constrain_to_a64_model(rows: list[dict[str, str]]) -> tuple[list[dict[str, str]], int]:
-    """Keep SBS observations only where their NACE code is present in nama_10_a64.
-
-    sbs_ovw_act exposes substantially more detailed NACE levels than the governed
-    A*64 coefficient model. Copying those detailed source codes into model_sector_code
-    silently creates thousands of pseudo-model sectors and denominator-missing groups.
-    The national-accounts A*64 extract is therefore the authoritative per-country model
-    sector vocabulary for this build. Source codes remain unchanged for retained rows.
-    """
     a64_by_country: dict[str, set[str]] = {}
     for row in rows:
         if row["source_dataset_id"] == "nama_10_a64":
@@ -268,8 +250,7 @@ def constrain_to_a64_model(rows: list[dict[str, str]]) -> tuple[list[dict[str, s
     for row in rows:
         if row["source_dataset_id"] != "sbs_ovw_act":
             kept.append(row)
-            continue
-        if row["model_sector_code"] in a64_by_country.get(row["country"], set()):
+        elif row["model_sector_code"] in a64_by_country.get(row["country"], set()):
             kept.append(row)
         else:
             dropped += 1
@@ -304,7 +285,7 @@ def main() -> int:
         ]:
             try:
                 rows.extend(fn(country, args.start_year, args.end_year, retrieved_at))
-            except Exception as exc:  # keep partial authoritative extraction inspectable
+            except Exception as exc:
                 errors.append({"country": country, "dataset": name, "error": f"{type(exc).__name__}: {exc}"})
     raw_rows = len(rows)
     rows, sbs_rows_dropped_non_a64 = constrain_to_a64_model(rows)
