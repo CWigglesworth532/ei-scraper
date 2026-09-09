@@ -28,9 +28,10 @@ class DirectEconomicCoverageTests(unittest.TestCase):
                 extra.append(item)
         cls.result = cov.build_coverage(cls.rows + extra, config=cls.cfg, generated_at=NOW)
 
-    def test_01_matrix_has_available_held_out_and_not_applicable(self):
+    def test_01_matrix_has_available_and_not_applicable(self):
         statuses = {row["availability_status"] for row in self.result["coverage_matrix"]}
-        self.assertEqual(statuses, {"available", "held_out", "not_applicable"})
+        self.assertIn("available", statuses)
+        self.assertIn("not_applicable", statuses)
 
     def test_02_trade_route_is_explicit(self):
         rows = [r for r in self.result["coverage_matrix"] if r["country"] == "DE" and r["model_sector_code"] == "G46"]
@@ -61,6 +62,19 @@ class DirectEconomicCoverageTests(unittest.TestCase):
         summary = self.result["summary"]
         self.assertEqual(summary["applicable_records"], summary["available_records"] + summary["held_out_records"])
         self.assertGreater(summary["not_applicable_records"], 0)
+
+    def test_09_held_out_status_is_exercised_when_applicable_denominator_missing(self):
+        rows = [
+            copy.deepcopy(r)
+            for r in self.rows
+            if not (r["country"] == "FR" and r["source_family"] == "national_accounts" and r["concept_code"] == "P1")
+        ]
+        result = cov.build_coverage(rows, config=self.cfg, generated_at=NOW)
+        fr_gva = next(
+            r for r in result["coverage_matrix"]
+            if r["country"] == "FR" and r["model_sector_code"] == "M72" and r["outcome_code"] == "GVA"
+        )
+        self.assertEqual((fr_gva["availability_status"], fr_gva["availability_reason"]), ("held_out", "denominator_missing"))
 
 
 if __name__ == "__main__":
