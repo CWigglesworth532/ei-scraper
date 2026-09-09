@@ -217,6 +217,24 @@ def _numerator(rows: list[dict[str, str]], outcome: Mapping[str, Any]) -> tuple[
     return value, components[0]["normalized_unit"], components, expression
 
 
+def _numerator_for_group(*, grouped: Mapping[tuple[str, str, str, str], list[dict[str, str]]],
+                         country: str, sector_code: str, year: str, route_name: str,
+                         route: Mapping[str, Any], outcome: Mapping[str, Any]) -> tuple[Decimal | None, str, list[dict[str, str]], str]:
+    configured = outcome.get("numerator_source_family_order")
+    if isinstance(configured, Mapping):
+        families = configured.get(route_name) or [route["source_family"]]
+    elif configured:
+        families = configured
+    else:
+        families = [route["source_family"]]
+    for family in families:
+        rows = grouped.get((clean(family), country, sector_code, year), [])
+        result = _numerator(rows, outcome)
+        if result[0] is not None:
+            return result
+    return None, "", [], outcome["numerator_concept_code"]
+
+
 def _coefficient_record(*, group_key, rows, route, outcome_code, outcome, denominator,
                         numerator_value, numerator_unit, numerator_rows, numerator_expression,
                         config, generated_at, qa_status, qa_reason):
@@ -252,7 +270,7 @@ def _coefficient_record(*, group_key, rows, route, outcome_code, outcome, denomi
         "coefficient_unit": outcome["coefficient_unit"],
         "denominator_method": route["method"],
         "denominator_compatibility_class": route["compatibility_class"],
-        "source_family": route["source_family"],
+        "source_family": _join_distinct(source_rows, "source_family") or route["source_family"],
         "source_organisation": _join_distinct(source_rows, "source_organisation"),
         "source_dataset_ids": _join_distinct(source_rows, "source_dataset_id"),
         "source_release_versions": _join_distinct(source_rows, "source_release_version"),
@@ -320,7 +338,10 @@ def build_coefficients(source_rows: list[dict[str, str]], *, config: Mapping[str
                 status, reason = "not_applicable", "outcome_not_applicable_to_denominator_route"
                 numerator_value, numerator_unit, numerator_rows, numerator_expression = None, "", [], outcome["numerator_concept_code"]
             else:
-                numerator_value, numerator_unit, numerator_rows, numerator_expression = _numerator(family_rows, outcome)
+                numerator_value, numerator_unit, numerator_rows, numerator_expression = _numerator_for_group(
+                    grouped=grouped, country=country, sector_code=sector_code, year=year,
+                    route_name=route_name, route=route, outcome=outcome,
+                )
                 status, reason = "calculated", ""
                 if denominator_problem:
                     status, reason = "held_out", denominator_problem
