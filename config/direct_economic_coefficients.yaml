@@ -1,0 +1,134 @@
+schema_version: sko-036-direct-economic-source-v1
+coefficient_schema_version: sko-036-direct-economic-coefficient-v1
+coefficient_release_version: v1-draft
+model_classification: NACE
+model_classification_version: "Rev. 2 A*64"
+
+denominator_routes:
+  default:
+    source_family: national_accounts
+    denominator_concept_code: P1
+    method: output_basic_prices
+    compatibility_class: OUTPUT_PROXY_ACCEPTED
+    required_denominator_unit: million_currency
+  trade_turnover:
+    model_sector_codes: [G45, G46, G47]
+    source_family: business_statistics
+    denominator_concept_code: TURNOVER
+    method: turnover_revenue_basis
+    compatibility_class: TURNOVER_ROUTE_REQUIRED
+    required_denominator_unit: million_currency
+
+outcomes:
+  GVA:
+    label: Gross value added
+    numerator_concept_code: B1G
+    coefficient_unit: currency_gva_per_currency_denominator
+    scale: "1"
+    required_numerator_unit: million_currency
+  INTERMEDIATE_CONSUMPTION:
+    label: Intermediate consumption
+    numerator_concept_code: P2
+    coefficient_unit: currency_intermediate_consumption_per_currency_denominator
+    scale: "1"
+    required_numerator_unit: million_currency
+  EMPLOYEE_COMPENSATION:
+    label: Compensation of employees
+    numerator_concept_code: D1
+    coefficient_unit: currency_employee_compensation_per_currency_denominator
+    scale: "1"
+    required_numerator_unit: million_currency
+  PRODUCTION_TAXES_NET:
+    label: Other taxes less subsidies on production
+    numerator_concept_code: D29X39
+    coefficient_unit: currency_production_taxes_net_per_currency_denominator
+    scale: "1"
+    required_numerator_unit: million_currency
+  OPERATING_SURPLUS_MIXED_INCOME:
+    label: Gross operating surplus and mixed income
+    numerator_concept_code: B2A3G
+    coefficient_unit: currency_operating_surplus_mixed_income_per_currency_denominator
+    scale: "1"
+    required_numerator_unit: million_currency
+  CONSUMPTION_FIXED_CAPITAL:
+    label: Consumption of fixed capital
+    numerator_concept_code: P51C
+    coefficient_unit: currency_consumption_fixed_capital_per_currency_denominator
+    scale: "1"
+    required_numerator_unit: million_currency
+  EMPLOYMENT_PERSONS:
+    label: Persons employed
+    numerator_concept_code: EMP_PERSONS
+    coefficient_unit: persons_per_million_currency_denominator
+    scale: "1"
+    required_numerator_unit: persons
+  EMPLOYMENT_HOURS:
+    label: Hours worked
+    numerator_concept_code: EMP_HOURS
+    coefficient_unit: hours_per_million_currency_denominator
+    scale: "1"
+    required_numerator_unit: hours
+  GROSS_FIXED_CAPITAL_FORMATION:
+    label: Gross fixed capital formation
+    numerator_concept_code: P51G
+    coefficient_unit: currency_gfcf_per_currency_denominator
+    scale: "1"
+    required_numerator_unit: million_currency
+
+accounting_identity:
+  source_family: national_accounts
+  left_concept_code: P1
+  right_concept_code_a: P2
+  right_concept_code_b: B1G
+  absolute_tolerance: "0.000001"
+
+source_catalogue:
+  eurostat_national_accounts:
+    organisation: Eurostat
+    dataset_id: nama_10_a64
+    intended_concepts: [P1, P2, B1G, D1, D29X39, B2A3G, P51C]
+    classification: NACE Rev. 2 A*64
+    retrieval_route: Eurostat dissemination API / bulk download
+    licence: Eurostat reuse policy with source acknowledgement
+  eurostat_employment:
+    organisation: Eurostat
+    dataset_id: nama_10_a64_e
+    intended_concepts: [EMP_PERSONS, EMP_HOURS]
+    classification: NACE Rev. 2 A*64
+    retrieval_route: Eurostat dissemination API / bulk download
+    licence: Eurostat reuse policy with source acknowledgement
+  eurostat_capital:
+    organisation: Eurostat
+    dataset_id: nama_10_a64_p5
+    intended_concepts: [P51G]
+    classification: NACE Rev. 2 A*64
+    retrieval_route: Eurostat dissemination API / bulk download
+    licence: Eurostat reuse policy with source acknowledgement
+  ons_supply_use:
+    organisation: Office for National Statistics
+    dataset_id: input-output-supply-and-use-tables
+    intended_concepts: [P1, P2, B1G, D1, D29X39, B2A3G, P51C]
+    classification: UK SIC 2007 mapped transparently to NACE Rev. 2-compatible model sectors
+    retrieval_route: ONS published xlsx release
+    licence: Open Government Licence
+  ons_employment:
+    organisation: Office for National Statistics
+    dataset_id: employment-multipliers-and-effects-in-the-uk
+    intended_concepts: [EMP_FTE]
+    classification: UK SIC 2007 / ONS industry aggregation
+    retrieval_route: ONS published xlsx release
+    licence: Open Government Licence
+  eurostat_sbs:
+    organisation: Eurostat
+    dataset_id: sbs_ovw_act
+    intended_concepts: [TURNOVER, B1G, D1, EMP_PERSONS]
+    classification: NACE Rev. 2
+    retrieval_route: Eurostat dissemination API / bulk download
+    licence: Eurostat reuse policy with source acknowledgement
+  ons_abs:
+    organisation: Office for National Statistics
+    dataset_id: annual-business-survey
+    intended_concepts: [TURNOVER, B1G, D1, EMP_PERSONS]
+    classification: UK SIC 2007
+    retrieval_route: ONS published xlsx/csv release
+    licence: Open Government Licence
