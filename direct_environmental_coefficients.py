@@ -51,8 +51,6 @@ COVERAGE_FIELDS = [
     "source_family", "source_dataset_ids", "source_release_versions", "source_release_dates",
 ]
 
-_USABLE_STATUS_FLAGS = {"", "ok", "available", "published", "normal"}
-
 
 def clean(value: Any) -> str:
     return "" if value is None else str(value).strip()
@@ -102,11 +100,16 @@ def load_config(path: Path) -> dict[str, Any]:
     required = {
         "schema_version", "coefficient_schema_version", "coefficient_release_version",
         "model_classification", "model_classification_version", "boundary",
-        "reference_year_policy", "denominator_routes", "outcomes",
+        "reference_year_policy", "source_status_policy", "denominator_routes", "outcomes",
         "granularity_fallback_policy", "currency_normalisation",
     }
     if not isinstance(config, dict) or required - set(config):
         raise ValueError("Environmental configuration contract incomplete")
+    status_policy = config["source_status_policy"]
+    if status_policy.get("mode") != "explicit_usable_flags":
+        raise ValueError("SKO-037 source status policy must use explicit_usable_flags")
+    if not isinstance(status_policy.get("usable_flags"), list):
+        raise ValueError("source_status_policy.usable_flags must be a list")
     routes = config["denominator_routes"]
     if "default" not in routes:
         raise ValueError("Default denominator route required")
@@ -208,8 +211,9 @@ def _join_distinct(rows: list[dict[str, str]], field: str) -> str:
     return "|".join(sorted({row[field] for row in rows if row.get(field)}))
 
 
-def _status_usable(row: dict[str, str]) -> bool:
-    return clean(row.get("status_flag")).lower() in _USABLE_STATUS_FLAGS
+def _status_usable(row: dict[str, str], config: Mapping[str, Any]) -> bool:
+    usable = {clean(flag).lower() for flag in config["source_status_policy"]["usable_flags"]}
+    return clean(row.get("status_flag")).lower() in usable
 
 
 def build_coefficients(
@@ -255,7 +259,7 @@ def build_coefficients(
             elif numerator is None:
                 qa_status, qa_reason = "held_out", "missing_required_numerator"
                 qa["missing_numerator_records"] += 1
-            elif not _status_usable(denominator) or not _status_usable(numerator):
+            elif not _status_usable(denominator, config) or not _status_usable(numerator, config):
                 qa_status, qa_reason = "held_out", "source_status_not_usable"
                 qa["source_status_holdouts"] += 1
             elif denominator["normalized_unit"] != route["required_denominator_unit"]:
