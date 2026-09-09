@@ -3,8 +3,16 @@
 
 Accepts Eurostat code-form or Data Browser label-form long CSV exports.
 For each 2023 origin-country x NACE activity, selects total destination and
-national-accounts dimensions, converts thousand tonnes to tonnes CO2e, maps
-Rest of world to FIGARO FIGW1, and preserves missing FIGARO nodes as missing.
+national-accounts dimensions, converts thousand tonnes to tonnes CO2e, and
+aligns the environmental Rest-of-World geography to FIGARO 2026.
+
+Eurostat env_ac_ghgfp has fewer explicit origin geographies than FIGARO 2026.
+For GHG only, Albania (AL), Montenegro (ME), North Macedonia (MK) and Serbia
+(RS) are members of the environmental WRL_REST geography. For each sector,
+the WRL_REST emissions total is allocated across FIGW1 + AL + ME + MK + RS in
+proportion to their FIGARO output. This preserves the source emissions total
+and gives every member of the source geography a common sector intensity.
+Missing source geographies outside this governed bridge remain missing.
 """
 from __future__ import annotations
 
@@ -19,6 +27,7 @@ from typing import Iterable
 
 YEAR = "2023"
 REST_CODE_ALIASES = {"WRL_REST", "WLR_REST", "REST_WORLD", "ROW"}
+ROW_GROUP_COUNTRIES = ("FIGW1", "AL", "ME", "MK", "RS")
 EXCLUDED_NACE_CODES = {"TOTAL", "TOTAL_HH", "HH", "G-U_X_H"}
 DEST_TOTAL_VALUES = {"WORLD", "ALL COUNTRIES OF THE WORLD"}
 NA_TOTAL_VALUES = {"TOTAL"}
@@ -102,28 +111,97 @@ def map_nace(value: str) -> tuple[str | None, str]:
     raise ValueError(f"unmapped Eurostat NACE label/code: {value!r}")
 
 
-def load_figaro_nodes(outputs_path: Path) -> list[tuple[str, str]]:
+def load_figaro_outputs(outputs_path: Path) -> dict[tuple[str, str], float]:
     with outputs_path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         required = {"country", "sector", "output_million_eur"}
         if not reader.fieldnames or not required.issubset(reader.fieldnames):
             raise ValueError("FIGARO outputs file missing required columns")
-        nodes, seen = [], set()
+        outputs: dict[tuple[str, str], float] = {}
         for row in reader:
             node = ((row["country"] or "").strip().upper(), (row["sector"] or "").strip().upper())
             if not all(node):
                 raise ValueError("blank FIGARO output node")
-            if node in seen:
+            if node in outputs:
                 raise ValueError(f"duplicate FIGARO output node: {node}")
-            seen.add(node)
-            nodes.append(node)
-    if not nodes:
+            value = _f(row["output_million_eur"], f"FIGARO output {node}")
+            if value <= 0:
+                raise ValueError(f"FIGARO output must be positive for {node}")
+            outputs[node] = value
+    if not outputs:
         raise ValueError("FIGARO outputs file is empty")
-    return nodes
+    return outputs
+
+
+def load_figaro_nodes(outputs_path: Path) -> list[tuple[str, str]]:
+    return list(load_figaro_outputs(outputs_path))
+
+
+def align_rest_of_world(
+    selected: dict[tuple[str, str], float],
+    figaro_outputs: dict[tuple[str, str], float],
+) -> dict:
+    """Align env_ac_ghgfp WRL_REST to FIGARO 2026 geography by sector output."""
+    sectors = sorted(sector for country, sector in selected if country == "FIGW1")
+    sector_records = []
+    max_abs_difference = 0.0
+    source_total_all = 0.0
+    allocated_total_all = 0.0
+
+    for sector in sectors:
+        source_key = ("FIGW1", sector)
+        source_total = selected[source_key]
+        members = [(country, sector) for country in ROW_GROUP_COUNTRIES if (country, sector) in figaro_outputs]
+        if not members:
+            continue
+        output_total = sum(figaro_outputs[node] for node in members)
+        if output_total <= 0:
+            raise ValueError(f"non-positive FIGARO ROW-group output for sector {sector}")
+
+        allocations = {}
+        for node in members:
+            allocations[node] = source_total * figaro_outputs[node] / output_total
+
+        allocated_total = sum(allocations.values())
+        difference = allocated_total - source_total
+        max_abs_difference = max(max_abs_difference, abs(difference))
+        tolerance = max(1e-9, abs(source_total) * 1e-12)
+        if abs(difference) > tolerance:
+            raise ValueError(f"ROW geography allocation failed emissions conservation for {sector}: {difference}")
+
+        del selected[source_key]
+        for node, value in allocations.items():
+            selected[node] = value
+
+        source_total_all += source_total
+        allocated_total_all += allocated_total
+        sector_records.append({
+            "sector": sector,
+            "source_emissions_tco2e": source_total,
+            "allocated_emissions_tco2e": allocated_total,
+            "allocation_difference_tco2e": difference,
+            "member_nodes": [f"{c}_{s}" for c, s in members],
+            "combined_output_million_eur": output_total,
+            "common_intensity_tco2e_per_million_eur": source_total / output_total,
+        })
+
+    return {
+        "mode": "WRL_REST_to_FIGARO2026_output_proportional_by_sector",
+        "source_geography": "env_ac_ghgfp_WRL_REST",
+        "figaro_member_countries": list(ROW_GROUP_COUNTRIES),
+        "aligned_sectors": len(sector_records),
+        "source_emissions_tco2e": source_total_all,
+        "allocated_emissions_tco2e": allocated_total_all,
+        "allocation_difference_tco2e": allocated_total_all - source_total_all,
+        "max_abs_sector_allocation_difference_tco2e": max_abs_difference,
+        "sector_records": sector_records,
+        "interpretation": "source geography alignment, not country-specific emissions imputation",
+    }
 
 
 def build_ghg_satellite(source_path: Path, outputs_path: Path, satellite_output: Path, diagnostics_output: Path | None = None, *, year: str = YEAR) -> dict:
-    figaro_nodes = load_figaro_nodes(outputs_path)
+    figaro_outputs = load_figaro_outputs(outputs_path)
+    figaro_nodes = list(figaro_outputs)
     figaro_set = set(figaro_nodes)
     selected: dict[tuple[str, str], float] = {}
     source_rows = selected_rows = excluded_origin_rows = excluded_nace_rows = 0
@@ -174,6 +252,8 @@ def build_ghg_satellite(source_path: Path, outputs_path: Path, satellite_output:
     if not selected:
         raise ValueError("no env_ac_ghgfp rows matched governed 2023 total-selection rule")
 
+    geography_alignment = align_rest_of_world(selected, figaro_outputs)
+
     covered = sorted(node for node in figaro_nodes if node in selected)
     missing = sorted(node for node in figaro_nodes if node not in selected)
     source_not_in_figaro = sorted(node for node in selected if node not in figaro_set)
@@ -218,8 +298,9 @@ def build_ghg_satellite(source_path: Path, outputs_path: Path, satellite_output:
             "excluded_nace_labels": dict(sorted(excluded_nace_labels.items())),
             "rest_of_world_figaro_code": "FIGW1",
         },
-        "missing_value_policy": "preserve_missing_not_zero",
-        "pilot_use_rule": "downstream outcome must hold out if any materially active upstream FIGARO node lacks GHG intensity",
+        "source_geography_alignment": geography_alignment,
+        "missing_value_policy": "preserve_missing_not_zero_outside_governed_source_geography_alignment",
+        "pilot_use_rule": "downstream outcome must hold out if any materially active upstream FIGARO node lacks GHG intensity after governed source-geography alignment",
     }
     if diagnostics_output:
         diagnostics_output.parent.mkdir(parents=True, exist_ok=True)
