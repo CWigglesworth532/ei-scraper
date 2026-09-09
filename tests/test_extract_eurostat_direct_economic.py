@@ -53,6 +53,30 @@ class EurostatExtractionTests(unittest.TestCase):
         }
         self.assertTrue(required.issubset(set(ex.SOURCE_FIELDS)))
 
+    def test_trade_divisions_are_governed_model_overrides(self):
+        self.assertEqual(ex.GOVERNED_TRADE_DIVISIONS, {"G45", "G46", "G47"})
+
+    def test_sbs_trade_division_retained_even_when_a64_has_only_aggregate(self):
+        base = {
+            "country": "ES",
+            "source_dataset_id": "nama_10_a64",
+            "model_sector_code": "G45-G47",
+        }
+        sbs_trade = {
+            "country": "ES",
+            "source_dataset_id": "sbs_ovw_act",
+            "model_sector_code": "G46",
+        }
+        sbs_detail = {
+            "country": "ES",
+            "source_dataset_id": "sbs_ovw_act",
+            "model_sector_code": "G466",
+        }
+        kept, dropped, overrides = ex.constrain_to_a64_model([base, sbs_trade, sbs_detail])
+        self.assertIn(sbs_trade, kept)
+        self.assertNotIn(sbs_detail, kept)
+        self.assertEqual((dropped, overrides), (1, 1))
+
 
 if __name__ == "__main__":
     unittest.main()
