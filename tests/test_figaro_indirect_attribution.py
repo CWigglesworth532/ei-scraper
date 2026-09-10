@@ -20,6 +20,7 @@ class FigaroIndirectAttributionTests(unittest.TestCase):
             "mapping_policy": {
                 "version": "figaro-nace-a64-v1",
                 "source": "synthetic A64 mapping",
+                "explicit_country_mapping": {},
                 "explicit_sector_mapping": {},
                 "approved_fallbacks": [],
             },
@@ -98,6 +99,33 @@ class FigaroIndirectAttributionTests(unittest.TestCase):
         mapping = next(r for r in result["mapping"] if r["selection_id"] == "OBS-3")
         self.assertEqual(mapping["mapping_status"], "unmapped")
         self.assertEqual(mapping["mapping_reason"], "nace_code_missing")
+
+    def test_explicit_country_equivalence_is_governed_exact_mapping(self):
+        cfg = copy.deepcopy(self.config)
+        cfg["mapping_policy"]["explicit_country_mapping"] = {"UK": "GB"}
+        outputs = self.outputs + [{"country": "GB", "sector": "M72", "output_million_eur": "50"}]
+        model = figaro.build_figaro_model([], outputs)
+        cohort = [{"selection_id": "OBS-UK", "country": "UK", "spend_eur": "1000", "proposed_nace_rev2_code": "72.1", "model_sector_code": "M72"}]
+        mapping = figaro.map_observations(cohort, model, cfg)[0]
+        self.assertEqual(mapping["country"], "UK")
+        self.assertEqual(mapping["figaro_country"], "GB")
+        self.assertEqual(mapping["figaro_sector"], "M72")
+        self.assertEqual(mapping["mapping_status"], "mapped_governed_exact")
+        self.assertEqual(mapping["mapping_reason"], "explicit_governed_exact_equivalence")
+        self.assertEqual(mapping["calculation_eligibility"], "eligible")
+
+    def test_explicit_sector_notation_equivalence_is_governed_exact_mapping(self):
+        cfg = copy.deepcopy(self.config)
+        cfg["mapping_policy"]["explicit_sector_mapping"] = {"C10-C12": "C10T12"}
+        outputs = self.outputs + [{"country": "FR", "sector": "C10T12", "output_million_eur": "50"}]
+        model = figaro.build_figaro_model([], outputs)
+        cohort = [{"selection_id": "OBS-SECTOR", "country": "FR", "spend_eur": "1000", "proposed_nace_rev2_code": "10", "model_sector_code": "C10-C12"}]
+        mapping = figaro.map_observations(cohort, model, cfg)[0]
+        self.assertEqual(mapping["model_sector"], "C10-C12")
+        self.assertEqual(mapping["figaro_sector"], "C10T12")
+        self.assertEqual(mapping["mapping_status"], "mapped_governed_exact")
+        self.assertEqual(mapping["mapping_reason"], "explicit_governed_exact_equivalence")
+        self.assertEqual(mapping["calculation_eligibility"], "eligible")
 
     def test_no_parent_fallback_is_permitted(self):
         cfg = copy.deepcopy(self.config)
