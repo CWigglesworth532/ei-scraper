@@ -158,7 +158,7 @@ def build_figaro_model_from_npz(path: str | Path) -> dict[str, Any]:
 
 
 def build_satellite_intensities(model: Mapping[str, Any], rows: list[dict[str, str]], config: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
-    """Return outcome intensity arrays per EURm output; missing cells stay NaN."""
+    """Return supplied outcome intensity arrays per EURm output; missing cells stay NaN."""
     wanted = {str(k).upper(): v for k, v in config.get("outcomes", {}).items()}
     cells: dict[str, dict[tuple[str, str], tuple[float, str]]] = defaultdict(dict)
     for r in rows:
@@ -173,11 +173,16 @@ def build_satellite_intensities(model: Mapping[str, Any], rows: list[dict[str, s
         cells[outcome][n] = (_f(r.get("value", ""), f"satellite {outcome} {n}"), r.get("unit", ""))
     result = {}
     for outcome, spec in wanted.items():
+        supplied = cells.get(outcome, {})
+        if not supplied:
+            if str(spec.get("status", "")).strip().lower() == "primary":
+                raise ValueError(f"required primary satellite outcome not supplied: {outcome}")
+            continue
         intensity = np.full(len(model["nodes"]), np.nan)
         units = set()
         for i, n in enumerate(model["nodes"]):
-            if n in cells[outcome]:
-                value, unit = cells[outcome][n]
+            if n in supplied:
+                value, unit = supplied[n]
                 intensity[i] = value / model["x"][i]
                 if unit:
                     units.add(unit)
