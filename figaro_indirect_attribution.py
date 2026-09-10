@@ -192,7 +192,8 @@ def map_observations(cohort: list[dict[str, str]], model: Mapping[str, Any], con
     policy = config.get("mapping_policy", {})
     if policy.get("approved_fallbacks"):
         raise ValueError("SKO-039 v1 does not permit parent fallback; exact governed mapping only")
-    explicit = {str(k).upper(): str(v).upper() for k, v in (policy.get("explicit_sector_mapping", {}) or {}).items()}
+    country_map = {str(k).upper(): str(v).upper() for k, v in (policy.get("explicit_country_mapping", {}) or {}).items()}
+    sector_map = {str(k).upper(): str(v).upper() for k, v in (policy.get("explicit_sector_mapping", {}) or {}).items()}
     trade = {str(v).upper() for v in config.get("valuation_policy", {}).get("trade_sector_holdouts", ["G45", "G46", "G47"])}
     nodes = set(model["nodes"])
     out = []
@@ -200,21 +201,23 @@ def map_observations(cohort: list[dict[str, str]], model: Mapping[str, Any], con
         country = (r.get("country") or "").strip().upper()
         original = (r.get("proposed_nace_rev2_code") or "").strip().upper()
         model_sector = (r.get("model_sector_code") or original).strip().upper()
-        mapped = explicit.get(model_sector, model_sector)
+        mapped_country = country_map.get(country, country)
+        mapped_sector = sector_map.get(model_sector, model_sector)
         if not original:
             status, reason, eligibility, valuation = "unmapped", "nace_code_missing", "held_out", "not_evaluated"
             fc, fs = "", ""
         elif not country:
             status, reason, eligibility, valuation = "unmapped", "country_missing", "held_out", "not_evaluated"
             fc, fs = "", ""
-        elif (country, mapped) not in nodes:
+        elif (mapped_country, mapped_sector) not in nodes:
             status, reason, eligibility, valuation = "unmapped", "figaro_country_sector_node_missing", "held_out", "not_evaluated"
-            fc, fs = country, mapped
+            fc, fs = mapped_country, mapped_sector
         else:
-            status = "mapped_exact" if model_sector == mapped else "mapped_governed_exact"
-            reason = "exact_a64_country_sector_node" if model_sector == mapped else "explicit_governed_exact_sector_mapping"
-            eligibility, valuation, fc, fs = "eligible", "basic_price_spend_proxy", country, mapped
-            if mapped in trade:
+            governed_equivalence = mapped_country != country or mapped_sector != model_sector
+            status = "mapped_governed_exact" if governed_equivalence else "mapped_exact"
+            reason = "explicit_governed_exact_equivalence" if governed_equivalence else "exact_a64_country_sector_node"
+            eligibility, valuation, fc, fs = "eligible", "basic_price_spend_proxy", mapped_country, mapped_sector
+            if mapped_sector in trade:
                 reason, eligibility, valuation = "trade_sector_primary_case_valuation_holdout", "held_out", "trade_purchase_value_not_comparable"
         out.append({
             "selection_id": r["selection_id"].strip(), "country": country,
