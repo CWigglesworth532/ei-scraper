@@ -2,7 +2,7 @@
 
 **Task:** SKO-040  
 **Epic / milestone:** E4 / E4.13  
-**Status:** Methodology-proof documentation implemented; governed SKO-040 proof outputs pending generation and owner review.  
+**Status:** Implemented and locally reconciled; deterministic rerun and owner review pending.  
 **Branch:** `sko-040-whole-spend-methodology-proof`  
 **Accepted technical baseline:** SKO-036, SKO-037, SKO-038 and SKO-039  
 
@@ -189,6 +189,8 @@ The currently accepted direct outcome set includes:
 
 Outcome availability is governed by source and denominator coverage; `not_applicable` must remain distinct from `held_out`.
 
+A direct observation may be `partially_modelled` where headline outcomes are available but one or more secondary outcomes is unavailable (for example because a numerator is absent). `partially_modelled` therefore does not mean that the whole observation has failed attribution.
+
 ### Stage F — optional FIGARO mapping and upstream attribution
 
 For eligible observations only, map the supplier country and model sector to the governed FIGARO node.
@@ -278,6 +280,42 @@ On the same 23-observation FIGARO-eligible boundary:
 | GHG | 376.629940299729 tCO2e | 1,880.13257429721 tCO2e | 2,256.76251459694 tCO2e |
 
 These direct values are the accepted SKO-038 direct results for the same FIGARO-eligible observation boundary; they are not a recalculation of the direct model.
+
+### 6.3 SKO-040 composed methodology proof — reconciled 2026-09-10
+
+The local proof outputs were generated from the accepted SKO-038 and SKO-039 outputs without recalculating the accepted direct results or rebuilding the indirect methodology:
+
+- `data/pilots/sko-040/whole_spend_methodology_proof.csv`
+- `data/pilots/sko-040/whole_spend_methodology_proof_summary.json`
+
+The composed proof reconciled all governed coverage boundaries:
+
+| Gate | Observations | Spend | Spend coverage |
+| --- | ---: | ---: | ---: |
+| Input / country present | 35 / 35 | €25,077,933.78 | 100% |
+| NACE resolved | 27 / 35 | €22,102,562.52 | 88.14% |
+| Direct modelled | 27 / 35 | €22,102,562.52 | 88.14% |
+| FIGARO eligible | 23 / 35 | €19,873,893.55 | 79.25% |
+
+All extended reconciliation gates passed, including:
+
+- 35 input observations and total spend;
+- 27 NACE-resolved / direct-modelled observations;
+- 23 FIGARO-eligible observations;
+- eight unresolved-NACE hold-outs;
+- four trade valuation hold-outs;
+- full direct headline GVA, employment and GHG totals;
+- FIGARO-eligible-boundary direct GVA/GHG;
+- indirect GVA/GHG;
+- combined GVA/GHG on the same 23-observation boundary.
+
+The proof preserves exact direct coefficient IDs, denominator routes, direct coefficient specificity, FIGARO mapping version, valuation status and mapping reason. It visibly retains the accepted FR P85 environmental `approved_parent_fallback`, the governed UK→GB FIGARO exact-equivalence treatment, and the `trade_turnover` denominator for resolved trade observations.
+
+Proof CSV SHA256:
+
+`9802db909515c77c9bbe19354b8cf79e483a9328aaa5ee4ee7b6f0d49016277b`
+
+The generated summary status is `methodology_proof_generated_and_reconciled_not_accepted`.
 
 ## 7. Direct and indirect capability matrix
 
@@ -388,49 +426,22 @@ These enrich interpretation but do not alter the generic direct / indirect calcu
 
 ## 10. SKO-040 governed proof-output contract
 
-The final SKO-040 evidence should be generated locally from accepted SKO-038 and SKO-039 outputs without copying live client rows into committed repository documentation.
+The final SKO-040 evidence is generated locally from accepted SKO-038 and SKO-039 outputs without copying live client rows into committed repository documentation.
 
-Recommended local output directory:
+Local output directory:
 
 `data/pilots/sko-040/`
 
-Recommended files:
+Files:
 
 - `whole_spend_methodology_proof.csv`
 - `whole_spend_methodology_proof_summary.json`
 
-The CSV should contain one row per governed pilot observation, joined deterministically by `selection_id`, with at least:
+The CSV contains one row per governed pilot observation, joined deterministically by `selection_id`, with observation identity and spend, country, spend year, proposed NACE and governed model sector, direct mapping/hold-out status, direct headline outcomes, denominator route and coefficient specificity, FIGARO country/sector, FIGARO mapping status/reason, valuation case and eligibility, indirect/combined headline outcomes and lineage references.
 
-- observation identity and spend;
-- supplier country;
-- spend year;
-- proposed NACE and governed model sector;
-- direct mapping status and hold-out reason;
-- direct headline outcomes;
-- denominator route and coefficient specificity;
-- FIGARO country / sector;
-- FIGARO mapping status and mapping reason;
-- valuation case and eligibility;
-- indirect headline outcomes;
-- combined headline outcomes where eligible;
-- direct and FIGARO lineage references.
+The JSON summary records input and gate coverage, hold-outs, direct and indirect headline totals, fallback/specificity and denominator-route mixes, claim-boundary text and input/proof fingerprints.
 
-The JSON summary should report at least:
-
-- input observations / spend;
-- country-present observations / spend;
-- NACE-resolved observations / spend;
-- direct-modelled observations / spend / coverage;
-- FIGARO-eligible observations / spend / coverage;
-- hold-outs by reason;
-- direct fallback / specificity mix;
-- headline direct totals;
-- headline indirect totals on the FIGARO-eligible boundary;
-- combined totals on that same boundary;
-- deterministic input/output fingerprints where practical;
-- claim-boundary text/version.
-
-No accepted SKO-036–039 result should be recalculated merely to populate this proof. The proof should reconcile and expose the accepted outputs.
+No accepted SKO-036–039 result is recalculated merely to populate this proof. The proof reconciles and exposes the accepted outputs.
 
 ## 11. Scaling pathway to a larger ordinary procurement dataset
 
@@ -464,6 +475,7 @@ Success should be defined by transparent coverage and governed failure behaviour
 - The governed 35-observation cohort has no populated `spend_year` values. The accepted SKO-038 output contract preserves the field, but the current live pilot does not demonstrate populated spend-year provenance.
 - Eight current pilot observations remain held out because NACE is unresolved.
 - Four resolved trade observations remain held out from primary FIGARO attribution under the accepted valuation policy.
+- Some direct observations are `partially_modelled` because one or more secondary economic outcomes have unavailable numerators; this does not prevent available headline outcomes from being modelled.
 - Indirect employment is deferred until a governed employment satellite with defensible coverage exists.
 - FIGARO upstream portfolio results are gross and not network-deduplicated.
 - The current pilot was selected from a social-economy cohort, but social-economy status is outside the calculation gate. A larger ordinary-procurement validation is still needed to evidence operational scaling beyond the test cohort.
@@ -471,21 +483,21 @@ Success should be defined by transparent coverage and governed failure behaviour
 
 ## 13. Acceptance boundary
 
-This document does not by itself make SKO-040 complete or accepted.
+This document and the reconciled local proof do not by themselves make SKO-040 complete or accepted.
 
 SKO-040 should remain in progress until:
 
-1. the governed SKO-040 proof CSV and summary JSON are generated from the accepted SKO-038 and SKO-039 outputs;
-2. totals, coverage and hold-outs reconcile to accepted evidence;
-3. the proof exposes the required lineage / fallback / valuation information;
-4. deterministic behaviour is checked where practical;
-5. owner review confirms that the methodology proof and scaling pathway are sufficient for E4.13.
+1. the governed SKO-040 proof CSV and summary JSON are generated from the accepted SKO-038 and SKO-039 outputs — **done**;
+2. totals, coverage and hold-outs reconcile to accepted evidence — **done**;
+3. the proof exposes the required lineage / fallback / valuation information — **done**;
+4. deterministic behaviour is checked where practical — **pending**;
+5. owner review confirms that the methodology proof and scaling pathway are sufficient for E4.13 — **pending**.
 
 No change to SKO-036–039 methodology is required unless a genuine incompatibility is discovered during proof generation.
 
 ## 14. Current implementation state
 
-### Work implemented
+### Work actually completed
 
 - SKO-040 methodology/capability proof documented.
 - Minimum client input contract documented.
@@ -493,14 +505,39 @@ No change to SKO-036–039 methodology is required unless a genuine incompatibil
 - Direct / indirect capability matrix documented.
 - Accepted 35-observation direct and FIGARO pilot evidence consolidated.
 - Claim boundaries and client-facing output structure documented.
-- Governed SKO-040 local proof-output contract documented.
+- Local one-row-per-observation methodology proof generated.
+- Extended summary generated with coverage gates, headline outcome reconciliation, hold-outs, lineage/specificity mixes and fingerprints.
+- All extended reconciliation gates passed.
 - Larger ordinary-procurement validation pathway documented.
 
-### Evidence still required
+### Evidence created
 
+- `docs/sko-040-whole-spend-methodology-proof.md`
 - `data/pilots/sko-040/whole_spend_methodology_proof.csv`
 - `data/pilots/sko-040/whole_spend_methodology_proof_summary.json`
-- reconciliation check against accepted SKO-038 / SKO-039 totals;
-- owner review / explicit acceptance.
+- proof CSV SHA256 `9802db909515c77c9bbe19354b8cf79e483a9328aaa5ee4ee7b6f0d49016277b`
+- behaviour evidence showing 35/35 country-present, 27/35 NACE/direct-modelled, 23/35 FIGARO-eligible, eight unresolved-NACE hold-outs, four trade hold-outs and complete headline-outcome reconciliation.
 
-**Current SKO-040 status:** In progress — methodology-proof document implemented; local governed proof output and owner acceptance still pending.
+### Decisions made
+
+- No new modelling engine is required for SKO-040; accepted SKO-038 and SKO-039 outputs can be composed directly.
+- A larger 250–500-row ordinary procurement pilot is the next scaling validation, not a prerequisite for the current 35-row methodology proof.
+- `partially_modelled` is interpreted at outcome coverage level, not as whole-observation failure.
+- Social-economy status remains an optional segmentation and supplier-specific verified social outcomes remain a separate evidence overlay.
+
+### Status changes
+
+- SKO-040 moved from documentation-only implementation to **implemented and locally reconciled**.
+- SKO-040 / E4.13 are **not accepted** pending deterministic rerun and explicit owner review.
+
+### Unresolved items
+
+- Deterministic rerun / byte-level or hash-level comparison of SKO-040 local proof outputs.
+- Explicit owner acceptance of the methodology proof and scaling pathway.
+- Later ordinary-procurement scaling validation.
+
+### Recommended next task
+
+Run the SKO-040 proof composition a second time with identical accepted inputs and confirm the proof CSV and summary JSON are unchanged. If deterministic, present the final E4.13 evidence for owner acceptance before moving to SKO-041 / E4.14 closeout.
+
+**Current SKO-040 status:** In progress — implemented and locally reconciled; deterministic rerun and owner acceptance pending.
