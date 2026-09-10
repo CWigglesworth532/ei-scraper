@@ -26,7 +26,12 @@ mapping_policy:
   preserve_sko038_model_sector: true
   silent_parent_fallback: false
   approved_fallbacks: []
-  explicit_sector_mapping: {}
+  explicit_country_mapping:
+    UK: GB
+  explicit_sector_mapping:
+    C10-C12: C10T12
+    M69_M70: M69_70
+    N80-N82: N80T82
   environmental_direct_fallback_inheritance: prohibited
   note: SKO-037 FR P85 to P environmental-direct fallback must not be inherited by SKO-039.
 
