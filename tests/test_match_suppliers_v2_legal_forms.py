@@ -78,6 +78,49 @@ class LegalFormHeuristicRegressionTests(unittest.TestCase):
     def test_unknown_country_does_not_apply_country_aliases(self):
         self.assert_not_coop("", "COLECTIVO CLARIS, SOC.COOP.")
 
+    # Live cross-country alias-discovery regressions.
+    def test_be_cvba_prefix_form(self):
+        self.assert_coop("BE", "CVBA WERKERS")
+
+    def test_be_punctuated_cvba(self):
+        self.assert_coop("BE", "ACTURA BE C.V.B.A.")
+
+    def test_be_punctuated_scrl(self):
+        self.assert_coop("BE", "S.C.R.L. MULTIPHARMA C.V.B.A.")
+
+    def test_be_multiple_legacy_coop_forms(self):
+        self.assert_coop("BE", "Alpha Card CVBA / SCRL,")
+
+    def test_nl_cooperatieve(self):
+        self.assert_coop("NL", "COOPERATIEVE TELERSVERENIGING")
+
+    def test_nl_terminal_ua_without_cooperatie_word(self):
+        self.assert_coop("NL", "Holland Fyto U.A.")
+
+    def test_ie_co_op(self):
+        self.assert_coop("IE", "AURIVO CO-OP SOCIETY LTD")
+
+    def test_dk_fmba_marker(self):
+        result = classify_name_candidates("DK", "VKST f.m.b.a.")
+        self.assertEqual(result["name_marker_candidate"], "YES")
+        self.assertIn(
+            "not for profit",
+            result["name_candidate_reason"].split(","),
+        )
+
+    # Discovery false positives / short-form precision safeguards.
+    def test_ch_coopers_is_not_cooperative(self):
+        self.assert_not_coop("CH", "Coopers Group AG")
+
+    def test_it_sc_initials_are_not_cooperative(self):
+        self.assert_not_coop("IT", "GRUPPO SC srl studio congressi")
+
+    def test_nl_ua_not_terminal_does_not_fire(self):
+        self.assert_not_coop("NL", "U.A. Consulting Nederland BV")
+
+    def test_ie_coop_alias_does_not_cross_country(self):
+        self.assert_not_coop("GB", "AURIVO CO-OP SOCIETY LTD")
+
 
 if __name__ == "__main__":
     unittest.main()

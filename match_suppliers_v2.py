@@ -58,6 +58,45 @@ LEGAL_FORM_ALIASES = {
             "cooperativa",
         ),
     },
+    "BE": {
+        "coop": (
+            "cvba",
+            "c v b a",
+            "scrl",
+            "s c r l",
+        ),
+    },
+    "NL": {
+        "coop": (
+            "cooperatieve",
+        ),
+    },
+    "IE": {
+        "coop": (
+            "co op",
+        ),
+    },
+}
+
+
+# Short/punctuated legal-form aliases that are only safe at the end of a name.
+# These remain country-scoped candidate signals rather than classifications.
+LEGAL_FORM_SUFFIX_ALIASES = {
+    "NL": {
+        "coop": (
+            "u a",
+            "b a",
+            "w a",
+        ),
+    },
+    "DK": {
+        "marker": (
+            "f m b a",
+        ),
+        "coop": (
+            "a m b a",
+        ),
+    },
 }
 
 
@@ -69,9 +108,19 @@ def _has_legal_form_alias(country, category, raw_name):
     aliases = LEGAL_FORM_ALIASES.get(country, {}).get(category, ())
     padded = f" {normalized} "
 
-    return any(
+    if any(
         f" {alias} " in padded
         for alias in aliases
+    ):
+        return True
+
+    suffix_aliases = LEGAL_FORM_SUFFIX_ALIASES.get(
+        country, {}
+    ).get(category, ())
+
+    return any(
+        normalized == alias or normalized.endswith(f" {alias}")
+        for alias in suffix_aliases
     )
 
 
@@ -373,6 +422,11 @@ def classify_name_candidates(country: str, name: str) -> dict:
 
     # Other markers
     for key in ("ggmbh", "esus", "impresa_sociale", "marker", "foundation_assoc"):
+        if _has_legal_form_alias(c, key, name):
+            out["name_marker_candidate"] = "YES"
+            triggered.append(key)
+            continue
+
         for rx in rules.get(key, []):
             if rx.search(name):
                 out["name_marker_candidate"] = "YES"
