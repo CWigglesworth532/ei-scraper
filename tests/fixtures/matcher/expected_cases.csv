@@ -1,0 +1,29 @@
+case_id,country,supplier_name,expected_coop,expected_marker,expected_reason,notes
+es_soc_dot_coop,ES,"CLARIDAD SERVICIOS, SOC.COOP.",YES,NO,coop,Spanish punctuated cooperative abbreviation
+es_s_coop,ES,TRANSITO SOCIAL S COOP,YES,NO,coop,Spanish S COOP abbreviation
+es_sdad_dot_coop,ES,"FARMA UNION SDAD.COOP.FCA.ESPAÑOLA",YES,NO,coop,Spanish SDAD.COOP abbreviation
+es_sdad_coop_andaluza,ES,RED SUR SDAD COOP ANDALUZA,YES,NO,coop,Spanish SDAD COOP regional form
+es_sdad_dot_coop_space,ES,RIBERA SOCIAL SDAD. COOP,YES,NO,coop,Spanish punctuation plus spacing
+es_sociedad_coop,ES,SOCIEDAD COOP NUEVA VIA,YES,NO,coop,Spanish SOCIEDAD COOP abbreviation
+de_eg,DE,Beispiel Energie eG,YES,NO,coop,German registered cooperative abbreviation
+de_e_dot_g,DE,Beispiel Energie e.G.,YES,NO,coop,German punctuated registered cooperative abbreviation
+it_soc_coop,IT,Impresa Verde Soc. Coop.,YES,NO,coop,Italian Soc. Coop. form
+pt_crl,PT,"Cooperativa Exemplo, C.R.L.",YES,NO,coop,Portuguese CRL suffix
+be_cv,BE,Voorbeeld Cooperatie CV,YES,NO,coop,Belgian CV cooperative form
+nl_cooperatie_ua,NL,Cooperatie Voorbeeld U.A.,YES,NO,coop,Dutch cooperative plus U.A.
+de_heg_negative,DE,H.E.G. Haus- und Elektrotechnik,NO,NO,,German initials must not be interpreted as eG
+de_eg_inside_word_negative,DE,Mega Energie GmbH,NO,NO,,eG letters inside an ordinary word must not fire
+es_alias_wrong_country,DE,"CLARIDAD SERVICIOS, SOC.COOP.",NO,NO,,Spanish alias must not cross country
+es_alias_unknown_country,,"CLARIDAD SERVICIOS, SOC.COOP.",NO,NO,,Country-specific aliases require country context
+be_cvba_prefix,BE,CVBA VOORBEELDWERK,YES,NO,coop,Belgian CVBA at start of name
+be_cvba_punctuated,BE,ACTIVA BE C.V.B.A.,YES,NO,coop,Belgian punctuated CVBA
+be_scrl_punctuated,BE,S.C.R.L. EXEMPLO C.V.B.A.,YES,NO,coop,Belgian punctuated SCRL and CVBA
+be_multiple_forms,BE,"Alpha Services CVBA / SCRL,",YES,NO,coop,Belgian multiple legacy cooperative forms
+nl_cooperatieve,NL,COOPERATIEVE TELERSGROEP,YES,NO,coop,Dutch adjectival cooperative form
+nl_terminal_ua,NL,Groene Telers U.A.,YES,NO,coop,Dutch terminal U.A. suffix
+ie_co_op,IE,MEADOW CO-OP SOCIETY LTD,YES,NO,coop,Irish CO-OP form
+dk_fmba_marker,DK,MARKNET f.m.b.a.,NO,YES,not for profit,Danish f.m.b.a. marker
+ch_coopers_negative,CH,Coopers Advisory AG,NO,NO,,Coopers is a company name token not cooperative legal form
+it_sc_negative,IT,ALFA SC srl consulenza eventi,NO,NO,,Generic SC initials must not imply cooperative legal form
+nl_ua_not_terminal_negative,NL,U.A. Consulting Nederland BV,NO,NO,,Dutch U.A. alias is only safe at the end
+ie_coop_wrong_country,GB,MEADOW CO-OP SOCIETY LTD,NO,NO,,Irish CO-OP alias must not cross country
