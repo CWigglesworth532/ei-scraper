@@ -22,7 +22,7 @@ class Sko036CoverageRefinementTests(unittest.TestCase):
     def test_accounting_identity_tolerance_matches_published_precision(self):
         identity = self.config["accounting_identity"]
         self.assertEqual(Decimal(identity["absolute_tolerance"]), Decimal("0.1"))
-        self.assertEqual(identity["tolerance_basis"], "published_million_euro_rounding")
+        self.assertEqual(identity["tolerance_basis"], "published_million_currency_rounding")
 
     def test_route_applicability_is_explicit(self):
         outcomes = self.config["outcomes"]
