@@ -1,0 +1,5 @@
+entity_id,source_record_id,term_type,term_raw,term_normalized,country,identifier_type,identifier_value_normalized,verification_status,review_status,approved_for_matching
+sko_ent_aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa,sko_src_aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa,reviewed_alias,Exact Anchor GmbH,exactanchorgmbh,DE,,,human_verified,accepted,True
+sko_ent_bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb,sko_src_bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb,brand,Trusted Spark,trustedspark,DE,,,human_verified,accepted,True
+sko_ent_cccccccc-cccc-4ccc-8ccc-cccccccccccc,sko_src_cccccccc-cccc-4ccc-8ccc-cccccccccccc,identifier,HRB 2002,hrb2002,DE,DE_HRB,hrb2002,human_verified,accepted,True
+sko_ent_dddddddd-dddd-4ddd-8ddd-dddddddddddd,sko_src_dddddddd-dddd-4ddd-8ddd-dddddddddddd,reviewed_alias,Beacon Energy eG,beaconenergyeg,DE,,,human_verified,accepted,True
