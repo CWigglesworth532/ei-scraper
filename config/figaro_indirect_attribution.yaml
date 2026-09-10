@@ -91,7 +91,7 @@ satellite_sources:
 portfolio_policy:
   aggregation_boundary: gross_observation_based_upstream_requirements
   double_counting_status: not_network_deduplicated
-  caveat: gross modelled upstream requirements may overlap where one Tier-1 supplier's modelled upstream purchases correspond to another Tier-1 supplier in the same client portfolio
+  caveat: Gross modelled upstream activity associated with the analysed purchases; supplier-level upstream requirements may overlap and are not deduplicated across the procurement portfolio.
   unique_total_claim_permitted: false
   direct_source: accepted_SKO_038_only
   direct_recalculation: prohibited
