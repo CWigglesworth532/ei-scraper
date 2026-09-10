@@ -26,9 +26,9 @@ class FigaroIndirectAttributionTests(unittest.TestCase):
             },
             "valuation_policy": {"trade_sector_holdouts": ["G45", "G46", "G47"]},
             "outcomes": {
-                "GVA": {"unit": "EUR", "coverage_scope": "all"},
-                "GHG": {"unit": "tCO2e", "coverage_scope": "all"},
-                "EMPLOYMENT_PERSONS": {"unit": "persons-equivalent", "coverage_scope": "qualified"},
+                "GVA": {"unit": "EUR", "coverage_scope": "all", "status": "primary"},
+                "GHG": {"unit": "tCO2e", "coverage_scope": "all", "status": "primary"},
+                "EMPLOYMENT_PERSONS": {"unit": "persons-equivalent", "coverage_scope": "qualified", "status": "secondary"},
             },
             "portfolio_policy": {
                 "aggregation_boundary": "gross_observation_based_upstream_requirements",
@@ -141,6 +141,25 @@ class FigaroIndirectAttributionTests(unittest.TestCase):
         self.assertEqual(row["status"], "held_out")
         self.assertIn("satellite_coverage_missing_for_upstream_nodes", row["holdout_reason"])
         self.assertEqual(row["indirect_value"], "")
+
+    def test_unsupplied_secondary_outcome_is_omitted_not_reported_as_zero(self):
+        satellites = [r for r in self.satellites if r["outcome"] != "EMPLOYMENT_PERSONS"]
+        result = figaro.compose_figaro_attribution(self.cohort, self.direct, self.transactions, self.outputs, satellites, self.config)
+        self.assertEqual({r["outcome"] for r in result["portfolio"]}, {"GVA", "GHG"})
+        self.assertNotIn("EMPLOYMENT_PERSONS", {r["outcome"] for r in result["outcomes"]})
+        self.assertNotIn("EMPLOYMENT_PERSONS", {r["outcome"] for r in result["qa"]})
+
+    def test_supplied_secondary_outcome_is_retained(self):
+        result = figaro.compose_figaro_attribution(self.cohort, self.direct, self.transactions, self.outputs, self.satellites, self.config)
+        self.assertIn("EMPLOYMENT_PERSONS", {r["outcome"] for r in result["portfolio"]})
+        row = next(r for r in result["outcomes"] if r["selection_id"] == "OBS-1" and r["outcome"] == "EMPLOYMENT_PERSONS")
+        self.assertEqual(row["status"], "available")
+        self.assertNotEqual(row["indirect_value"], "")
+
+    def test_missing_primary_outcome_is_rejected(self):
+        satellites = [r for r in self.satellites if r["outcome"] != "GHG"]
+        with self.assertRaisesRegex(ValueError, "required primary satellite outcome not supplied: GHG"):
+            figaro.compose_figaro_attribution(self.cohort, self.direct, self.transactions, self.outputs, satellites, self.config)
 
     def test_country_sector_contributions_reconcile_to_indirect_total(self):
         result = figaro.compose_figaro_attribution(self.cohort, self.direct, self.transactions, self.outputs, self.satellites, self.config)
