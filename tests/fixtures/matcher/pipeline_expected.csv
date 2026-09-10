@@ -1,0 +1,9 @@
+supplier_name,expected_match_type,expected_entity_id,expected_coop,expected_marker,expected_bucket
+Exact Anchor GmbH,canonical_safe_name_exact,sko_ent_aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa,NO,NO,technical
+Trusted Spark Europe GmbH,canonical_safe_brand,sko_ent_bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb,NO,NO,technical
+Identifier Example Services GmbH,canonical_safe_identifier,sko_ent_cccccccc-cccc-4ccc-8ccc-cccccccccccc,NO,NO,technical
+Beacon Energy eG,canonical_safe_name_exact,sko_ent_dddddddd-dddd-4ddd-8ddd-dddddddddddd,YES,NO,technical_with_heuristic
+RED SOCIAL S COOP,,,YES,NO,heuristic_only
+Stichting Horizon,,,NO,YES,heuristic_only
+Plain Vendor Services Ltd,,,NO,NO,unflagged
+Exact Anchor GmbH,,,NO,NO,unflagged
