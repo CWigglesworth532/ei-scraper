@@ -28,6 +28,53 @@ LEGAL_SUFFIX_RE = re.compile(
 def _rx(patterns):
     return [re.compile(p, flags=re.IGNORECASE) for p in patterns]
 
+
+def normalize_heuristic_text(value):
+    """Normalize supplier-name text for legal-form heuristic matching only.
+
+    This is deliberately separate from normalize_name(), which is used by
+    fuzzy matching and strips legal suffixes. Heuristic normalization keeps
+    legal-form words while removing punctuation/spacing variation commonly
+    found in ERP/vendor-master names.
+    """
+    if value is None:
+        return ""
+
+    text = unidecode(str(value)).lower()
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+# Explicit country-scoped aliases. These are candidate-generation signals,
+# not proof of social-economy classification.
+LEGAL_FORM_ALIASES = {
+    "ES": {
+        "coop": (
+            "sociedad cooperativa",
+            "sociedad coop",
+            "soc coop",
+            "s coop",
+            "sdad coop",
+            "cooperativa",
+        ),
+    },
+}
+
+
+def _has_legal_form_alias(country, category, raw_name):
+    normalized = normalize_heuristic_text(raw_name)
+    if not normalized:
+        return False
+
+    aliases = LEGAL_FORM_ALIASES.get(country, {}).get(category, ())
+    padded = f" {normalized} "
+
+    return any(
+        f" {alias} " in padded
+        for alias in aliases
+    )
+
+
 NAME_HEURISTICS = {
 
     # -----------------
@@ -35,7 +82,7 @@ NAME_HEURISTICS = {
     # -----------------
     "DE": {
         "coop": _rx([
-            r"\b(e\.?\s*g\.?)\b",
+            r"(?:^|[\s,;\(\[])e\.?\s*g\.?(?=\s*$)",
             r"\beingetragene\s+genossenschaft\b",
             r"\bgenossenschaft\b",
         ]),
@@ -310,11 +357,19 @@ def classify_name_candidates(country: str, name: str) -> dict:
     triggered = []
 
     # Coop
-    for rx in rules.get("coop", []):
-        if rx.search(name):
-            out["name_coop_candidate"] = "YES"
-            triggered.append("coop")
-            break
+    # First apply explicit country-scoped aliases to normalized heuristic text.
+    # This captures punctuation/spacing variation without weakening country
+    # alignment or converting the signal into confirmed classification.
+    if _has_legal_form_alias(c, "coop", name):
+        out["name_coop_candidate"] = "YES"
+        triggered.append("coop")
+    else:
+        # Preserve existing raw-name regex behaviour for governed country rules.
+        for rx in rules.get("coop", []):
+            if rx.search(name):
+                out["name_coop_candidate"] = "YES"
+                triggered.append("coop")
+                break
 
     # Other markers
     for key in ("ggmbh", "esus", "impresa_sociale", "marker", "foundation_assoc"):
